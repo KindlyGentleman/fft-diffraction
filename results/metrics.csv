@@ -1,17 +1,17 @@
-experiment,N,dx_um,fov_mm,z_m,method,runtime_s,relative_error_raw_pct,relative_error_peak_pct
-fixed_fov,256,10.0,2.56,0.5,fresnel,0.0469,6.608,7.619
-fixed_fov,256,10.0,2.56,0.5,asm,0.0561,6.788,9.486
-fixed_fov,256,10.0,2.56,0.5,blas,0.0569,2.949,1.754
-fixed_fov,256,51.953,13.3,0.5,sas,0.1392,2.83,1.329
-fixed_fov,512,5.0,2.56,0.5,fresnel,0.2909,7.329,11.431
-fixed_fov,512,5.0,2.56,0.5,asm,0.2018,7.114,18.09
-fixed_fov,512,5.0,2.56,0.5,blas,0.2689,1.868,1.841
-fixed_fov,512,51.953,26.6,0.5,sas,0.5325,1.614,0.672
-fixed_fov,1024,2.5,2.56,0.5,fresnel,1.1872,6.838,13.084
-fixed_fov,1024,2.5,2.56,0.5,asm,0.9941,6.786,13.631
-fixed_fov,1024,2.5,2.56,0.5,blas,0.9871,1.396,1.89
-fixed_fov,1024,51.953,53.2,0.5,sas,2.6935,1.038,0.395
-far_field_aliasing,512,5.0,2.56,0.8,fresnel,0.2836,15.28,31.99
-far_field_aliasing,512,5.0,2.56,0.8,asm,0.314,15.336,25.656
-far_field_aliasing,512,5.0,2.56,0.8,blas,0.3206,2.783,2.583
-far_field_aliasing,512,83.125,42.56,0.8,sas,0.599,1.279,0.589
+experiment,N,method,dx_um,fov_mm,coverage_status,z_m,runtime_s,shared_error_raw_pct,shared_error_peak_pct,full_fov_error_raw_pct
+fixed_fov,256,fresnel,10.0,2.56,Shared (2.56 mm),0.5,0.0456,6.608,7.619,6.608
+fixed_fov,256,asm,10.0,2.56,Shared (2.56 mm),0.5,0.0501,6.788,9.486,6.788
+fixed_fov,256,blas,10.0,2.56,Shared (2.56 mm),0.5,0.0456,2.949,1.754,2.949
+fixed_fov,256,sas,51.953,13.3,Scaled (13.3 mm),0.5,0.1349,2.782,1.184,2.83
+fixed_fov,512,fresnel,5.0,2.56,Shared (2.56 mm),0.5,0.2759,7.329,11.431,7.329
+fixed_fov,512,asm,5.0,2.56,Shared (2.56 mm),0.5,0.2549,7.114,18.09,7.114
+fixed_fov,512,blas,5.0,2.56,Shared (2.56 mm),0.5,0.2533,1.868,1.841,1.868
+fixed_fov,512,sas,51.953,26.6,Scaled (26.6 mm),0.5,0.5109,1.599,0.614,1.614
+fixed_fov,1024,fresnel,2.5,2.56,Shared (2.56 mm),0.5,0.9479,6.838,13.084,6.838
+fixed_fov,1024,asm,2.5,2.56,Shared (2.56 mm),0.5,1.2068,6.786,13.631,6.786
+fixed_fov,1024,blas,2.5,2.56,Shared (2.56 mm),0.5,1.3537,1.396,1.89,1.396
+fixed_fov,1024,sas,51.953,53.2,Scaled (53.2 mm),0.5,2.5491,1.033,0.367,1.038
+far_field_aliasing,512,fresnel,5.0,2.56,Clipped (2.56 mm),0.8,0.2689,15.28,31.99,N/A (clipped)
+far_field_aliasing,512,asm,5.0,2.56,Clipped (2.56 mm),0.8,0.2502,15.336,25.656,N/A (clipped)
+far_field_aliasing,512,blas,5.0,2.56,Clipped (2.56 mm),0.8,0.2856,2.783,2.583,N/A (clipped)
+far_field_aliasing,512,sas,83.125,42.56,Full (42.6 mm),0.8,0.552,1.256,0.517,1.279

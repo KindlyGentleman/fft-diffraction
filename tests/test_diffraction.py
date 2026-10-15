@@ -20,6 +20,14 @@ from diffraction import (
     radial_profile,
     find_first_radial_minimum,
     compute_bandlimit_frequencies,
+    double_slit_aperture,
+    annular_aperture,
+    gaussian_field,
+    binary_grating,
+    triangular_aperture,
+    shifted_circular_aperture,
+    compute_shared_region_l2_error,
+    sas_output_scaling,
 )
 
 
@@ -274,4 +282,93 @@ def test_sas_vs_single_step_fresnel_near_field():
     diff = np.linalg.norm(u_sas - u_fr) / np.linalg.norm(u_sas)
     # The non-paraxial precompensation introduces a measurable phase/amplitude correction
     assert diff > 1e-4
+
+
+def test_aperture_gallery_masks():
+    """Verify that all eight aperture generation functions produce valid, non-zero fields."""
+    grid = create_grid(nx=256, ny=256, dx=5e-6, dy=5e-6)
+
+    # 1. Circular
+    u_circ = circular_aperture(grid, radius=1.5e-4)
+    assert np.all((u_circ == 0.0) | (u_circ == 1.0))
+    assert np.sum(np.abs(u_circ)) > 0
+
+    # 2. Rectangular
+    u_rect = rectangular_aperture(grid, width=3.0e-4, height=4.5e-4)
+    assert np.all((u_rect == 0.0) | (u_rect == 1.0))
+    assert np.sum(np.abs(u_rect)) > 0
+
+    # 3. Double slit
+    u_slit = double_slit_aperture(grid, slit_width=5e-5, slit_height=4e-4, separation=2e-4)
+    assert np.all((u_slit == 0.0) | (u_slit == 1.0))
+    # Check left-right coordinate symmetry
+    assert np.isclose(np.sum(u_slit[grid.X < 0]), np.sum(u_slit[grid.X > 0]))
+
+    # 4. Annular
+    u_ann = annular_aperture(grid, r_inner=8e-5, r_outer=1.8e-4)
+    assert np.all((u_ann == 0.0) | (u_ann == 1.0))
+    # Origin should be dark (inner obscuration)
+    assert u_ann[grid.ny // 2, grid.nx // 2] == 0.0
+
+    # 5. Gaussian field
+    u_gauss = gaussian_field(grid, waist=1.5e-4)
+    assert np.isclose(np.max(np.abs(u_gauss)), 1.0)
+    assert np.all(np.abs(u_gauss) >= 0.0)
+
+    # 6. Binary grating
+    u_grat = binary_grating(grid, period=6e-5, duty_cycle=0.5, width=5e-4, height=4e-4)
+    assert np.all((u_grat == 0.0) | (u_grat == 1.0))
+    assert np.sum(np.abs(u_grat)) > 0
+
+    # 7. Triangular
+    u_tri = triangular_aperture(grid, side_length=3.5e-4)
+    assert np.all((u_tri == 0.0) | (u_tri == 1.0))
+    assert np.sum(np.abs(u_tri)) > 0
+    # Left-right coordinate mirror symmetry
+    assert np.isclose(np.sum(u_tri[grid.X < 0]), np.sum(u_tri[grid.X > 0]))
+
+    # 8. Shifted circular
+    u_shift = shifted_circular_aperture(grid, radius=1.2e-4, x_offset=2.5e-4, y_offset=2.5e-4)
+    assert np.all((u_shift == 0.0) | (u_shift == 1.0))
+    # Center origin should be dark because circle is shifted away
+    assert u_shift[grid.ny // 2, grid.nx // 2] == 0.0
+
+
+def test_shared_region_l2_error():
+    """Verify that compute_shared_region_l2_error correctly restricts evaluation."""
+    grid = create_grid(nx=128, ny=128, dx=10e-6, dy=10e-6)
+    arr1 = np.ones((128, 128))
+    arr2 = np.ones((128, 128))
+
+    err_zero = compute_shared_region_l2_error(arr1, grid, arr2, x_max=2e-4, y_max=2e-4)
+    assert np.isclose(err_zero, 0.0)
+
+    # Difference placed only outside the shared region
+    arr2_out = arr2.copy()
+    arr2_out[0, 0] = 99.0
+    err_outside = compute_shared_region_l2_error(arr1, grid, arr2_out, x_max=2e-4, y_max=2e-4)
+    assert np.isclose(err_outside, 0.0)
+
+    # Difference inside the shared region
+    arr2_in = arr2.copy()
+    arr2_in[64, 64] = 2.0
+    err_inside = compute_shared_region_l2_error(arr1, grid, arr2_in, x_max=2e-4, y_max=2e-4)
+    assert err_inside > 0.0
+
+
+def test_sas_output_scaling():
+    """Verify analytical formula for SAS destination grid scaling."""
+    wavelength = 532e-9
+    z = 0.50
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    padding = 2
+
+    dqx, dqy, Sx_out, Sy_out = sas_output_scaling(wavelength, z, nx, ny, dx, dy, padding=padding)
+    expected_dq = wavelength * z / (nx * padding * dx)
+    assert np.isclose(dqx, expected_dq)
+    assert np.isclose(dqy, expected_dq)
+    assert np.isclose(Sx_out, nx * expected_dq)
+    assert np.isclose(Sy_out, ny * expected_dq)
+
 

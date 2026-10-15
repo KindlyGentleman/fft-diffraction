@@ -1,11 +1,14 @@
 """Scientific visualization module for FFT scalar diffraction experiments.
 
 Generates:
-1. Fig 1: 2x2 Apertures aligned above their corresponding diffraction fields.
-2. Fig 2: 2x2 Standard ASM vs Band-Limited ASM intensity and error maps.
-3. Fig 3: 2x2 Propagated intensities with quantitative analytical profiles.
-4. Primary GIF: 2x2 Static apertures above animated diffraction fields.
-5. Error GIF: 2x2 Standard ASM vs BL-ASM intensity and error evolution.
+1. Fig 1: 2x2 Input apertures aligned above corresponding diffraction fields.
+2. Fig 2: 2x4 Fair comparison of Fresnel, ASM, BL-ASM, and SAS with error maps.
+3. Fig 3: 2x2 Analytical Fraunhofer validation with quantitative cross-sections.
+4. Fig 4: 4x2 Gallery A: Circular, Rectangular, Double slit, and Annular apertures.
+5. Fig 5: 4x2 Gallery B: Gaussian field, Binary grating, Triangular, and Off-axis circular.
+6. Fig 6: 2x5 Propagation distance sweep and grid scaling comparison.
+7. Primary GIF: Animated free-space propagation loop.
+8. Error GIF: Animated ASM vs SAS error evolution loop.
 """
 
 import os
@@ -13,14 +16,23 @@ from typing import Tuple, List, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.patches import Rectangle
 from PIL import Image
 
 from diffraction import (
+    Grid,
     create_grid,
     circular_aperture,
     rectangular_aperture,
+    double_slit_aperture,
+    annular_aperture,
+    gaussian_field,
+    binary_grating,
+    triangular_aperture,
+    shifted_circular_aperture,
     propagate_asm,
     propagate_blas,
+    propagate_fresnel,
     propagate_sas,
     airy_first_zero,
     airy_pattern,
@@ -28,6 +40,8 @@ from diffraction import (
     radial_profile,
     find_first_radial_minimum,
     relative_l2_error,
+    compute_shared_region_l2_error,
+    sas_output_scaling,
 )
 
 # Apply IEEE publication style
@@ -116,7 +130,6 @@ def generate_fig01_aperture_diffraction(
     ax_d.set_xlabel("$x$ [mm]")
     ax_d.set_ylabel("$y$ [mm]")
 
-    # Shared colorbar for bottom diffraction panels
     cbar = fig.colorbar(im_d, ax=[ax_c, ax_d], orientation="horizontal", fraction=0.045, pad=0.18, aspect=35)
     cbar.set_label("Normalized Intensity $I / I_{\\max}$", fontsize=7.5)
     cbar.ax.tick_params(labelsize=6.5)
@@ -133,7 +146,7 @@ def generate_fig02_methods_errors(
     output_pdf: str = "assets/fig02_methods_errors.pdf",
     dpi: int = 400,
 ) -> None:
-    """Generate Figure 2: Standard ASM vs Scalable Angular Spectrum (SAS) with error maps."""
+    """Generate Figure 2: Fair 2x4 comparison of Fresnel, ASM, BL-ASM, and SAS with error maps."""
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
 
     nx, ny = 512, 512
@@ -143,88 +156,130 @@ def generate_fig02_methods_errors(
     z_eval = 0.80
 
     grid = create_grid(nx, ny, dx, dy)
-    extent_asm = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
+    extent_fixed = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
 
     u_in = circular_aperture(grid, radius=radius)
+    u_fres = propagate_fresnel(u_in, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
     u_asm = propagate_asm(u_in, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
+    u_blas = propagate_blas(u_in, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
     u_sas, grid_sas = propagate_sas(u_in, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
 
     extent_sas = [grid_sas.x[0] * 1e3, grid_sas.x[-1] * 1e3, grid_sas.y[0] * 1e3, grid_sas.y[-1] * 1e3]
 
-    i_ref_asm = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
-    i_ref_sas = airy_pattern(grid_sas, wavelength, z=z_eval, radius=radius)
-
+    i_fres = np.abs(u_fres)**2
     i_asm = np.abs(u_asm)**2
+    i_blas = np.abs(u_blas)**2
     i_sas = np.abs(u_sas)**2
 
-    i_asm_disp = i_asm / np.max(i_ref_asm)
-    i_ref_asm_disp = i_ref_asm / np.max(i_ref_asm)
-    err_asm = np.abs(i_asm_disp - i_ref_asm_disp)
+    i_ref_fixed = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
+    i_ref_sas = airy_pattern(grid_sas, wavelength, z=z_eval, radius=radius)
 
-    i_sas_disp = i_sas / np.max(i_ref_sas)
-    i_ref_sas_disp = i_ref_sas / np.max(i_ref_sas)
-    err_sas = np.abs(i_sas_disp - i_ref_sas_disp)
+    max_ref_fixed = np.max(i_ref_fixed)
+    max_ref_sas = np.max(i_ref_sas)
 
-    l2_asm = relative_l2_error(i_asm, i_ref_asm) * 100.0
-    l2_sas = relative_l2_error(i_sas, i_ref_sas) * 100.0
+    disp_fres = i_fres / max_ref_fixed
+    disp_asm = i_asm / max_ref_fixed
+    disp_blas = i_blas / max_ref_fixed
+    disp_sas = i_sas / max_ref_sas
 
-    fig = plt.figure(figsize=(7.16, 6.2), dpi=dpi)
-    gs = GridSpec(2, 2, figure=fig, hspace=0.30, wspace=0.25)
+    err_fres = np.abs(disp_fres - i_ref_fixed / max_ref_fixed)
+    err_asm = np.abs(disp_asm - i_ref_fixed / max_ref_fixed)
+    err_blas = np.abs(disp_blas - i_ref_fixed / max_ref_fixed)
+    err_sas = np.abs(disp_sas - i_ref_sas / max_ref_sas)
+
+    # Fair shared physical domain evaluation [-1.28, 1.28] mm
+    x_max = grid.Sx / 2.0
+    l2_fres_shared = relative_l2_error(i_fres, i_ref_fixed) * 100.0
+    l2_asm_shared = relative_l2_error(i_asm, i_ref_fixed) * 100.0
+    l2_blas_shared = relative_l2_error(i_blas, i_ref_fixed) * 100.0
+    l2_sas_shared = compute_shared_region_l2_error(i_sas, grid_sas, i_ref_sas, x_max=x_max, y_max=x_max) * 100.0
+    l2_sas_full = relative_l2_error(i_sas, i_ref_sas) * 100.0
+
+    fig = plt.figure(figsize=(7.16, 4.4), dpi=dpi)
+    gs = GridSpec(2, 4, figure=fig, hspace=0.38, wspace=0.30)
 
     vmax_int = 1.05
-    vmax_err = 0.15
+    vmax_err = 0.20
 
-    # Panel (a): Standard ASM Intensity (Fixed Grid)
+    # Row 1: Intensity fields
     ax_a = fig.add_subplot(gs[0, 0])
-    im_a = ax_a.imshow(i_asm_disp, extent=extent_asm, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
-    ax_a.set_title("(a) Standard ASM Intensity (Fixed Grid, $z = 0.80$ m)", fontsize=8)
-    ax_a.set_xlabel("$x$ [mm]")
+    im_a = ax_a.imshow(disp_fres, extent=extent_fixed, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
+    ax_a.set_title("(a) Fresnel (Fixed)", fontsize=7.5)
     ax_a.set_ylabel("$y$ [mm]")
+    ax_a.tick_params(labelsize=6)
 
-    # Panel (b): Scalable Angular Spectrum Intensity (Scaled Grid)
     ax_b = fig.add_subplot(gs[0, 1])
-    im_b = ax_b.imshow(i_sas_disp, extent=extent_sas, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
-    ax_b.set_title("(b) Scalable Angular Spectrum Intensity (Scaled Grid)", fontsize=8)
-    ax_b.set_xlabel("$x$ [mm]")
-    ax_b.set_ylabel("$y$ [mm]")
+    ax_b.imshow(disp_asm, extent=extent_fixed, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
+    ax_b.set_title("(b) Standard ASM (Fixed)", fontsize=7.5)
+    ax_b.tick_params(labelsize=6)
 
-    # Panel (c): Standard ASM Error Map
-    ax_c = fig.add_subplot(gs[1, 0])
-    im_c = ax_c.imshow(err_asm, extent=extent_asm, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
-    ax_c.set_title("(c) Standard ASM Error Map (Aliasing)", fontsize=8)
-    ax_c.set_xlabel("$x$ [mm]")
-    ax_c.set_ylabel("$y$ [mm]")
-    ax_c.text(
-        0.04, 0.92, f"Relative $L_2$ error: {l2_asm:.2f}%",
-        transform=ax_c.transAxes, fontsize=6.8, color="white",
-        bbox=dict(boxstyle="round,pad=0.2", facecolor="black", alpha=0.6, lw=0)
-    )
+    ax_c = fig.add_subplot(gs[0, 2])
+    ax_c.imshow(disp_blas, extent=extent_fixed, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
+    ax_c.set_title("(c) Band-Limited ASM", fontsize=7.5)
+    ax_c.tick_params(labelsize=6)
 
-    # Panel (d): Scalable Angular Spectrum Error Map
-    ax_d = fig.add_subplot(gs[1, 1])
-    im_d = ax_d.imshow(err_sas, extent=extent_sas, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
-    ax_d.set_title("(d) Scalable Angular Spectrum Error Map", fontsize=8)
-    ax_d.set_xlabel("$x$ [mm]")
-    ax_d.set_ylabel("$y$ [mm]")
-    ax_d.text(
-        0.04, 0.92, f"Relative $L_2$ error: {l2_sas:.2f}%",
-        transform=ax_d.transAxes, fontsize=6.8, color="white",
-        bbox=dict(boxstyle="round,pad=0.2", facecolor="black", alpha=0.6, lw=0)
-    )
+    ax_d = fig.add_subplot(gs[0, 3])
+    im_d = ax_d.imshow(disp_sas, extent=extent_sas, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
+    ax_d.set_title("(d) Scalable AS (Scaled)", fontsize=7.5)
+    ax_d.tick_params(labelsize=6)
+    # Highlight the shared region on the SAS scaled panel
+    rect_d = Rectangle((-x_max * 1e3, -x_max * 1e3), 2 * x_max * 1e3, 2 * x_max * 1e3,
+                       fill=False, edgecolor="#e41a1c", ls="--", lw=0.8)
+    ax_d.add_patch(rect_d)
+    ax_d.text(0.04, 0.05, "Shared FOV", transform=ax_d.transAxes, fontsize=5.5, color="#e41a1c",
+              bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.5, lw=0))
 
-    # Separate shared colorbars for top intensity row and bottom error row
-    cbar_top = fig.colorbar(im_b, ax=[ax_a, ax_b], orientation="vertical", fraction=0.03, pad=0.04)
-    cbar_top.set_label("Intensity $I / I_{\\mathrm{ref},\\max}$", fontsize=7)
-    cbar_top.ax.tick_params(labelsize=6)
+    # Row 2: Error maps
+    ax_e = fig.add_subplot(gs[1, 0])
+    im_e = ax_e.imshow(err_fres, extent=extent_fixed, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
+    ax_e.set_title("(e) Fresnel Error", fontsize=7.5)
+    ax_e.set_xlabel("$x$ [mm]")
+    ax_e.set_ylabel("$y$ [mm]")
+    ax_e.tick_params(labelsize=6)
+    ax_e.text(0.04, 0.88, f"Shared $L_2$: {l2_fres_shared:.1f}%\nFOV: 2.56 mm (clipped)",
+              transform=ax_e.transAxes, fontsize=5.4, color="white",
+              bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.6, lw=0))
 
-    cbar_bot = fig.colorbar(im_d, ax=[ax_c, ax_d], orientation="vertical", fraction=0.03, pad=0.04)
-    cbar_bot.set_label("Absolute Error $|I - I_{\\mathrm{ref}}| / I_{\\mathrm{ref},\\max}$", fontsize=7)
-    cbar_bot.ax.tick_params(labelsize=6)
+    ax_f = fig.add_subplot(gs[1, 1])
+    ax_f.imshow(err_asm, extent=extent_fixed, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
+    ax_f.set_title("(f) ASM Error (Aliasing)", fontsize=7.5)
+    ax_f.set_xlabel("$x$ [mm]")
+    ax_f.tick_params(labelsize=6)
+    ax_f.text(0.04, 0.88, f"Shared $L_2$: {l2_asm_shared:.1f}%\nFOV: 2.56 mm (clipped)",
+              transform=ax_f.transAxes, fontsize=5.4, color="white",
+              bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.6, lw=0))
 
-    fig.suptitle(
-        "Far-Field Aliasing vs Scalable Angular Spectrum: Standard ASM vs SAS ($\\lambda = 532$ nm, $z = 0.80$ m)",
-        fontsize=8.5, y=0.98
-    )
+    ax_g = fig.add_subplot(gs[1, 2])
+    ax_g.imshow(err_blas, extent=extent_fixed, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
+    ax_g.set_title("(g) BL-ASM Error", fontsize=7.5)
+    ax_g.set_xlabel("$x$ [mm]")
+    ax_g.tick_params(labelsize=6)
+    ax_g.text(0.04, 0.88, f"Shared $L_2$: {l2_blas_shared:.1f}%\nFOV: 2.56 mm (clipped)",
+              transform=ax_g.transAxes, fontsize=5.4, color="white",
+              bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.6, lw=0))
+
+    ax_h = fig.add_subplot(gs[1, 3])
+    im_h = ax_h.imshow(err_sas, extent=extent_sas, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
+    ax_h.set_title("(h) SAS Error", fontsize=7.5)
+    ax_h.set_xlabel("$x$ [mm]")
+    ax_h.tick_params(labelsize=6)
+    rect_h = Rectangle((-x_max * 1e3, -x_max * 1e3), 2 * x_max * 1e3, 2 * x_max * 1e3,
+                       fill=False, edgecolor="#e41a1c", ls="--", lw=0.8)
+    ax_h.add_patch(rect_h)
+    ax_h.text(0.04, 0.88, f"Shared: {l2_sas_shared:.1f}% | Full: {l2_sas_full:.1f}%\nFOV: 42.56 mm (full)",
+              transform=ax_h.transAxes, fontsize=5.4, color="white",
+              bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.6, lw=0))
+
+    # Shared colorbars
+    cbar_top = fig.colorbar(im_d, ax=[ax_a, ax_b, ax_c, ax_d], orientation="vertical", fraction=0.015, pad=0.02)
+    cbar_top.set_label("$I / I_{\\mathrm{ref},\\max}$", fontsize=6.5)
+    cbar_top.ax.tick_params(labelsize=5.5)
+
+    cbar_bot = fig.colorbar(im_h, ax=[ax_e, ax_f, ax_g, ax_h], orientation="vertical", fraction=0.015, pad=0.02)
+    cbar_bot.set_label("$|I - I_{\\mathrm{ref}}| / I_{\\mathrm{ref},\\max}$", fontsize=6.5)
+    cbar_bot.ax.tick_params(labelsize=5.5)
+
+    fig.suptitle("Fair Comparison of Scalar Propagation Methods ($\\lambda = 532$ nm, $z = 0.80$ m)", fontsize=8.5, y=0.98)
 
     plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
     plt.savefig(output_pdf, bbox_inches="tight")
@@ -236,7 +291,7 @@ def generate_fig03_results_profiles(
     output_pdf: str = "assets/fig03_results_profiles.pdf",
     dpi: int = 400,
 ) -> None:
-    """Generate Figure 3: 2x2 grid combining 2D intensities with analytical profile plots."""
+    """Generate Figure 3: Analytical Fraunhofer validation with quantitative profiles."""
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
 
     nx, ny = 512, 512
@@ -247,7 +302,6 @@ def generate_fig03_results_profiles(
     w_rect, h_rect = 3.0e-4, 4.5e-4
 
     grid_in = create_grid(nx, ny, dx, dy)
-
     u_circ_in = circular_aperture(grid_in, radius=radius)
     u_rect_in = rectangular_aperture(grid_in, width=w_rect, height=h_rect)
 
@@ -320,7 +374,7 @@ def generate_fig03_results_profiles(
 
     ax_c.text(
         0.48, 0.65,
-        f"First zero err: {r1_err:.2f}%\nSAS profile err: {prof_l2_err:.2f}%",
+        f"1st zero err: {r1_err:.2f}%\nSAS profile err: {prof_l2_err:.2f}%",
         transform=ax_c.transAxes, fontsize=6.5,
         bbox=dict(boxstyle="round,pad=0.2", facecolor="#f7f7f7", edgecolor="#cccccc", lw=0.6)
     )
@@ -357,8 +411,243 @@ def generate_fig03_results_profiles(
     ax_d.legend(loc="upper right", frameon=False, fontsize=6.2)
 
     fig.suptitle(
-        "Analytical Fraunhofer Validation of Scalable Angular Spectrum ($z = 0.50$ m)",
+        "Analytical Fraunhofer Validation of Scalable Angular Spectrum ($z = 0.50$ m, $z \\gg a^2/\\lambda$)",
         fontsize=8.5, y=0.98
+    )
+
+    plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
+    plt.savefig(output_pdf, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_fig04_aperture_gallery_a(
+    output_png: str = "assets/fig04_aperture_gallery_a.png",
+    output_pdf: str = "assets/fig04_aperture_gallery_a.pdf",
+    dpi: int = 400,
+) -> None:
+    """Generate Figure 4: Diffraction Gallery A (Circular, Rectangular, Double Slit, Annular)."""
+    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    grid = create_grid(nx, ny, dx, dy)
+    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
+
+    # 1. Circular aperture (Airy diffraction)
+    u1_in = circular_aperture(grid, radius=1.5e-4)
+    z1 = 0.40
+    u1_out = propagate_blas(u1_in, wavelength, z=z1, dx=dx, dy=dy, padding=2)
+    i1 = np.abs(u1_out)**2
+
+    # 2. Rectangular aperture (sinc-squared diffraction)
+    u2_in = rectangular_aperture(grid, width=3.0e-4, height=4.5e-4)
+    z2 = 0.40
+    u2_out = propagate_blas(u2_in, wavelength, z=z2, dx=dx, dy=dy, padding=2)
+    i2 = np.abs(u2_out)**2
+
+    # 3. Double slit (interference fringes modulated by envelope)
+    u3_in = double_slit_aperture(grid, slit_width=5e-5, slit_height=4e-4, separation=2e-4)
+    z3 = 0.20
+    u3_out = propagate_blas(u3_in, wavelength, z=z3, dx=dx, dy=dy, padding=2)
+    i3 = np.abs(u3_out)**2
+
+    # 4. Annular aperture (ring-shaped pupil with central obscuration)
+    u4_in = annular_aperture(grid, r_inner=8e-5, r_outer=1.8e-4)
+    z4 = 0.40
+    u4_out = propagate_blas(u4_in, wavelength, z=z4, dx=dx, dy=dy, padding=2)
+    i4 = np.abs(u4_out)**2
+
+    fig = plt.figure(figsize=(6.8, 9.2), dpi=dpi)
+    gs = GridSpec(4, 2, figure=fig, hspace=0.38, wspace=0.25)
+
+    cases = [
+        (0, u1_in, i1, "(a) Circular Aperture ($2a = 0.30$ mm)", f"(b) Airy Diffraction ($z = {z1:.2f}$ m)",
+         "Classic Airy pattern: central disc with dark ring at $r_1 = 0.87$ mm"),
+        (1, u2_in, i2, "(c) Rectangular Aperture ($0.30 \\times 0.45$ mm)", f"(d) Sinc-Squared Diffraction ($z = {z2:.2f}$ m)",
+         "2D separable sinc-squared pattern with orthogonal sidelobes"),
+        (2, u3_in, i3, "(e) Double Slit ($w = 0.05$ mm, $d = 0.20$ mm)", f"(f) Young Interference ($z = {z3:.2f}$ m)",
+         "High-contrast fringes modulated by single-slit diffraction envelope"),
+        (3, u4_in, i4, "(g) Annular Aperture ($r_{\\mathrm{in}}=0.08, r_{\\mathrm{out}}=0.18$ mm)", f"(h) Obscured Ring Diffraction ($z = {z4:.2f}$ m)",
+         "Central obscuration sharpens core while boosting outer ring intensity"),
+    ]
+
+    last_im = None
+    for row, u_in, i_out, t_in, t_out, desc in cases:
+        ax_in = fig.add_subplot(gs[row, 0])
+        ax_in.imshow(np.abs(u_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+        ax_in.set_title(t_in, fontsize=7.5)
+        ax_in.set_ylabel("$y$ [mm]")
+        if row == 3:
+            ax_in.set_xlabel("$x$ [mm]")
+        ax_in.tick_params(labelsize=6)
+
+        ax_out = fig.add_subplot(gs[row, 1])
+        i_norm = i_out / np.max(i_out)
+        last_im = ax_out.imshow(i_norm, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+        ax_out.set_title(t_out, fontsize=7.5)
+        if row == 3:
+            ax_out.set_xlabel("$x$ [mm]")
+        ax_out.tick_params(labelsize=6)
+        ax_out.text(0.03, 0.05, desc, transform=ax_out.transAxes, fontsize=5.6, color="white",
+                    bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.6, lw=0))
+
+    cbar = fig.colorbar(last_im, ax=fig.axes, orientation="horizontal", fraction=0.025, pad=0.08, aspect=40)
+    cbar.set_label("Normalized Intensity $I / I_{\\max}$", fontsize=7)
+    cbar.ax.tick_params(labelsize=6)
+
+    fig.suptitle("Diffraction Example Gallery A: Canonical Apertures and Wave Fields", fontsize=8.8, y=0.99)
+
+    plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
+    plt.savefig(output_pdf, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_fig05_aperture_gallery_b(
+    output_png: str = "assets/fig05_aperture_gallery_b.png",
+    output_pdf: str = "assets/fig05_aperture_gallery_b.pdf",
+    dpi: int = 400,
+) -> None:
+    """Generate Figure 5: Diffraction Gallery B (Gaussian, Binary Grating, Triangular, Off-Axis)."""
+    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    grid = create_grid(nx, ny, dx, dy)
+    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
+
+    # 5. Gaussian beam (smooth beam propagation)
+    u5_in = gaussian_field(grid, waist=1.2e-4)
+    z5 = 0.20
+    u5_out = propagate_blas(u5_in, wavelength, z=z5, dx=dx, dy=dy, padding=2)
+    i5 = np.abs(u5_out)**2
+
+    # 6. Binary transmission grating (multiple diffraction orders)
+    u6_in = binary_grating(grid, period=6e-5, duty_cycle=0.5, width=5e-4, height=4e-4)
+    z6 = 0.12
+    u6_out = propagate_blas(u6_in, wavelength, z=z6, dx=dx, dy=dy, padding=2)
+    i6 = np.abs(u6_out)**2
+
+    # 7. Triangular aperture (non-centrosymmetric geometry, 6-pointed star)
+    u7_in = triangular_aperture(grid, side_length=3.5e-4)
+    z7 = 0.25
+    u7_out = propagate_blas(u7_in, wavelength, z=z7, dx=dx, dy=dy, padding=2)
+    i7 = np.abs(u7_out)**2
+
+    # 8. Off-axis circular aperture (shifted-field behavior)
+    u8_in = shifted_circular_aperture(grid, radius=1.2e-4, x_offset=2.5e-4, y_offset=2.5e-4)
+    z8 = 0.25
+    u8_out = propagate_blas(u8_in, wavelength, z=z8, dx=dx, dy=dy, padding=2)
+    i8 = np.abs(u8_out)**2
+
+    fig = plt.figure(figsize=(6.8, 9.2), dpi=dpi)
+    gs = GridSpec(4, 2, figure=fig, hspace=0.38, wspace=0.25)
+
+    cases = [
+        (0, u5_in, i5, "(a) Gaussian Field ($w_0 = 0.12$ mm)", f"(b) Smooth Beam Expansion ($z = {z5:.2f}$ m)",
+         "Smooth monotonic expansion without sharp edge diffraction ripples"),
+        (1, u6_in, i6, "(c) Binary Grating ($\\Lambda = 0.06$ mm)", f"(d) Diffraction Orders ($z = {z6:.2f}$ m)",
+         "Discrete diffraction orders ($0, \\pm 1$) separated by $\\Delta \\theta \\approx \\lambda / \\Lambda$"),
+        (2, u7_in, i7, "(e) Triangular Aperture (Side $0.35$ mm)", f"(f) Six-Pointed Diffraction Star ($z = {z7:.2f}$ m)",
+         "Six-fold diffraction spikes reflecting 3-fold polygonal edge normals"),
+        (3, u8_in, i8, "(g) Off-Axis Aperture ($x_0 = y_0 = 0.25$ mm)", f"(h) Shifted Diffraction Pattern ($z = {z8:.2f}$ m)",
+         "Lateral shift in input plane preserves envelope under Fraunhofer propagation"),
+    ]
+
+    last_im = None
+    for row, u_in, i_out, t_in, t_out, desc in cases:
+        ax_in = fig.add_subplot(gs[row, 0])
+        ax_in.imshow(np.abs(u_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+        ax_in.set_title(t_in, fontsize=7.5)
+        ax_in.set_ylabel("$y$ [mm]")
+        if row == 3:
+            ax_in.set_xlabel("$x$ [mm]")
+        ax_in.tick_params(labelsize=6)
+
+        ax_out = fig.add_subplot(gs[row, 1])
+        i_norm = i_out / np.max(i_out)
+        last_im = ax_out.imshow(i_norm, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+        ax_out.set_title(t_out, fontsize=7.5)
+        if row == 3:
+            ax_out.set_xlabel("$x$ [mm]")
+        ax_out.tick_params(labelsize=6)
+        ax_out.text(0.03, 0.05, desc, transform=ax_out.transAxes, fontsize=5.6, color="white",
+                    bbox=dict(boxstyle="round,pad=0.15", facecolor="black", alpha=0.6, lw=0))
+
+    cbar = fig.colorbar(last_im, ax=fig.axes, orientation="horizontal", fraction=0.025, pad=0.08, aspect=40)
+    cbar.set_label("Normalized Intensity $I / I_{\\max}$", fontsize=7)
+    cbar.ax.tick_params(labelsize=6)
+
+    fig.suptitle("Diffraction Example Gallery B: Structured Waves and Polygonal Shapes", fontsize=8.8, y=0.99)
+
+    plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
+    plt.savefig(output_pdf, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_fig06_distance_sweep(
+    output_png: str = "assets/fig06_distance_sweep.png",
+    output_pdf: str = "assets/fig06_distance_sweep.pdf",
+    dpi: int = 400,
+) -> None:
+    """Generate Figure 6: Propagation distance and scaling comparison across near and far fields."""
+    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    radius = 1.5e-4
+
+    grid_in = create_grid(nx, ny, dx, dy)
+    u_in = circular_aperture(grid_in, radius=radius)
+    extent_fixed = [grid_in.x[0] * 1e3, grid_in.x[-1] * 1e3, grid_in.y[0] * 1e3, grid_in.y[-1] * 1e3]
+
+    distances = [0.005, 0.020, 0.050, 0.200, 0.800]
+
+    fig = plt.figure(figsize=(7.16, 3.8), dpi=dpi)
+    gs = GridSpec(2, 5, figure=fig, hspace=0.36, wspace=0.30)
+
+    for col, z in enumerate(distances):
+        u_blas = propagate_blas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+        u_sas, grid_sas = propagate_sas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+
+        i_blas = np.abs(u_blas)**2
+        i_sas = np.abs(u_sas)**2
+
+        i_blas_norm = i_blas / np.max(i_blas)
+        i_sas_norm = i_sas / np.max(i_sas)
+
+        extent_sas = [grid_sas.x[0] * 1e3, grid_sas.x[-1] * 1e3, grid_sas.y[0] * 1e3, grid_sas.y[-1] * 1e3]
+        fresnel_num = (radius**2) / (wavelength * z)
+        mag_m = grid_sas.dx / dx
+
+        # Row 1: Fixed-Grid BL-ASM
+        ax_top = fig.add_subplot(gs[0, col])
+        ax_top.imshow(i_blas_norm, extent=extent_fixed, origin="lower", cmap="inferno", vmin=0, vmax=1)
+        z_str = f"{z * 1e3:.0f} mm" if z < 0.10 else f"{z * 1e3:.0f} mm"
+        ax_top.set_title(f"$z = {z_str}$\n$N_F = {fresnel_num:.2f}$", fontsize=7)
+        if col == 0:
+            ax_top.set_ylabel("BL-ASM (Fixed)\n$y$ [mm]", fontsize=6.8)
+        ax_top.tick_params(labelsize=5.5)
+
+        # Row 2: Scalable Angular Spectrum
+        ax_bot = fig.add_subplot(gs[1, col])
+        im_bot = ax_bot.imshow(i_sas_norm, extent=extent_sas, origin="lower", cmap="inferno", vmin=0, vmax=1)
+        fov_str = f"{grid_sas.Sx * 1e3:.2f} mm" if grid_sas.Sx < 0.01 else f"{grid_sas.Sx * 1e3:.1f} mm"
+        ax_bot.set_title(f"FOV: {fov_str} ($m={mag_m:.2f}$)", fontsize=6.5)
+        ax_bot.set_xlabel("$x$ [mm]", fontsize=6.8)
+        if col == 0:
+            ax_bot.set_ylabel("SAS (Scaled)\n$y$ [mm]", fontsize=6.8)
+        ax_bot.tick_params(labelsize=5.5)
+
+    cbar = fig.colorbar(im_bot, ax=fig.axes, orientation="horizontal", fraction=0.035, pad=0.18, aspect=45)
+    cbar.set_label("Normalized Intensity $I / I_{\\max}$", fontsize=7)
+    cbar.ax.tick_params(labelsize=6)
+
+    fig.suptitle(
+        "Evolution of Circular Aperture Diffraction: Fixed-Grid BL-ASM vs Scalable Angular Spectrum",
+        fontsize=8.5, y=0.99
     )
 
     plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
@@ -383,23 +672,9 @@ def generate_primary_loop_gif(
     u_circ_in = circular_aperture(grid, radius=1.2e-4)
     u_rect_in = rectangular_aperture(grid, width=2.2e-4, height=3.2e-4)
 
-    # Pre-render static top aperture images
-    fig_top, (ax_ta, ax_tb) = plt.subplots(1, 2, figsize=(6.2, 2.5), dpi=120)
-    fig_top.patch.set_facecolor("#111111")
-    ax_ta.imshow(np.abs(u_circ_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
-    ax_ta.set_title("Circular Aperture ($2a = 0.24$ mm)", fontsize=8, color="white")
-    ax_ta.tick_params(colors="white")
-    ax_ta.set_ylabel("$y$ [mm]", color="white")
-
-    ax_tb.imshow(np.abs(u_rect_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
-    ax_tb.set_title("Rectangular ($0.22 \\times 0.32$ mm)", fontsize=8, color="white")
-    ax_tb.tick_params(colors="white")
-    plt.close(fig_top)
-
     z_min = 0.005
     z_max = 0.250
     z_forward = np.geomspace(z_min, z_max, num_steps)
-    # Ping-pong sequence without duplicating endpoints for smooth loop
     z_cycle = np.concatenate([z_forward, z_forward[-2:0:-1]])
 
     frames = []
@@ -481,7 +756,6 @@ def generate_error_loop_gif(
     extent_asm = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
     u_in = circular_aperture(grid, radius=radius)
 
-    # Far-field range where Fraunhofer analytical reference is rigorously valid
     z_min = 0.35
     z_max = 0.85
     z_forward = np.linspace(z_min, z_max, num_steps)
@@ -510,8 +784,10 @@ def generate_error_loop_gif(
         err_asm = np.abs(i_asm_n - i_ref_asm_n)
         err_sas = np.abs(i_sas_n - i_ref_sas_n)
 
+        # Fair shared region calculation
+        x_max = grid.Sx / 2.0
         l2_asm = relative_l2_error(i_asm, i_ref_asm) * 100.0
-        l2_sas = relative_l2_error(i_sas, i_ref_sas) * 100.0
+        l2_sas_shared = compute_shared_region_l2_error(i_sas, grid_sas, i_ref_sas, x_max=x_max, y_max=x_max) * 100.0
 
         fig = plt.figure(figsize=(6.2, 5.2), dpi=120)
         fig.patch.set_facecolor("#111111")
@@ -539,7 +815,7 @@ def generate_error_loop_gif(
 
         ax_d = fig.add_subplot(gs[1, 1])
         ax_d.imshow(err_sas, extent=extent_sas, origin="lower", cmap="magma", vmin=0, vmax=0.18)
-        ax_d.set_title(f"SAS Error (L2: {l2_sas:.1f}%)", fontsize=7.5, color="#66c2a5")
+        ax_d.set_title(f"SAS Shared Error (L2: {l2_sas_shared:.1f}%)", fontsize=7.5, color="#66c2a5")
         ax_d.set_xlabel("$x$ [mm]", color="white")
         ax_d.tick_params(colors="white")
 
@@ -573,6 +849,12 @@ if __name__ == "__main__":
     generate_fig02_methods_errors()
     print("Generating Figure 3 (Results and profiles)...")
     generate_fig03_results_profiles()
+    print("Generating Figure 4 (Gallery A)...")
+    generate_fig04_aperture_gallery_a()
+    print("Generating Figure 5 (Gallery B)...")
+    generate_fig05_aperture_gallery_b()
+    print("Generating Figure 6 (Distance sweep)...")
+    generate_fig06_distance_sweep()
     print("Generating Primary diffraction loop GIF...")
     n_frames1 = generate_primary_loop_gif()
     print(f"Primary GIF complete ({n_frames1} frames).")

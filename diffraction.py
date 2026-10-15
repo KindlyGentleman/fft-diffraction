@@ -60,6 +60,63 @@ def rectangular_aperture(grid: Grid, width: float, height: float) -> np.ndarray:
     return mask.astype(np.complex128)
 
 
+def double_slit_aperture(
+    grid: Grid,
+    slit_width: float,
+    slit_height: float,
+    separation: float,
+) -> np.ndarray:
+    """Generate a binary double slit transmission mask."""
+    slit1 = (np.abs(grid.X - separation / 2.0) <= slit_width / 2.0) & (np.abs(grid.Y) <= slit_height / 2.0)
+    slit2 = (np.abs(grid.X + separation / 2.0) <= slit_width / 2.0) & (np.abs(grid.Y) <= slit_height / 2.0)
+    return (slit1 | slit2).astype(np.complex128)
+
+
+def annular_aperture(grid: Grid, r_inner: float, r_outer: float) -> np.ndarray:
+    """Generate a binary annular (ring-shaped) aperture mask."""
+    r = np.sqrt(grid.X**2 + grid.Y**2)
+    return ((r >= r_inner) & (r <= r_outer)).astype(np.complex128)
+
+
+def gaussian_field(grid: Grid, waist: float) -> np.ndarray:
+    """Generate a fundamental Gaussian beam complex amplitude field."""
+    r = np.sqrt(grid.X**2 + grid.Y**2)
+    return np.exp(-(r / waist)**2).astype(np.complex128)
+
+
+def binary_grating(
+    grid: Grid,
+    period: float,
+    duty_cycle: float,
+    width: float,
+    height: float,
+) -> np.ndarray:
+    """Generate a 1D binary transmission grating bounded by a rectangular envelope."""
+    within_bounds = (np.abs(grid.X) <= width / 2.0) & (np.abs(grid.Y) <= height / 2.0)
+    periodic_slits = ((grid.X + period / 2.0) % period) < (period * duty_cycle)
+    return (within_bounds & periodic_slits).astype(np.complex128)
+
+
+def triangular_aperture(grid: Grid, side_length: float) -> np.ndarray:
+    """Generate a binary equilateral triangular aperture mask centered at origin."""
+    h = side_length * np.sqrt(3.0) / 2.0
+    y_bottom = -h / 3.0
+    y_top = 2.0 * h / 3.0
+    mask = (grid.Y >= y_bottom) & (grid.Y <= y_top) & (np.abs(grid.X) <= (y_top - grid.Y) / np.sqrt(3.0))
+    return mask.astype(np.complex128)
+
+
+def shifted_circular_aperture(
+    grid: Grid,
+    radius: float,
+    x_offset: float,
+    y_offset: float,
+) -> np.ndarray:
+    """Generate an off-axis (shifted) binary circular aperture mask."""
+    r = np.sqrt((grid.X - x_offset)**2 + (grid.Y - y_offset)**2)
+    return (r <= radius).astype(np.complex128)
+
+
 def pad_field(field: np.ndarray, factor: int = 2) -> Tuple[np.ndarray, Tuple[slice, slice]]:
     """Centrally zero-pad a 2D field by an integer factor."""
     if factor <= 1:
@@ -459,4 +516,44 @@ def find_first_radial_minimum(
     if len(sign_changes) > 0:
         return float(r_sub[sign_changes[0] + 1])
     return float(r_sub[np.argmin(p_sub)])
+
+
+def compute_shared_region_l2_error(
+    i_test: np.ndarray,
+    grid_test: Grid,
+    i_ref: np.ndarray,
+    x_max: float,
+    y_max: float,
+) -> float:
+    """Calculate relative L2 error norm restricted to physical region [-x_max, x_max] x [-y_max, y_max]."""
+    mask = (np.abs(grid_test.X) <= x_max) & (np.abs(grid_test.Y) <= y_max)
+    if not np.any(mask):
+        return float("nan")
+    test_sub = i_test[mask]
+    ref_sub = i_ref[mask]
+    return relative_l2_error(test_sub, ref_sub)
+
+
+def sas_output_scaling(
+    wavelength: float,
+    z: float,
+    nx: int,
+    ny: int,
+    dx: float,
+    dy: float,
+    padding: int = 2,
+) -> Tuple[float, float, float, float]:
+    """Calculate Scalable Angular Spectrum output pixel pitch and field of view.
+
+    Returns:
+        (dqx, dqy, Sx_out, Sy_out) in meters.
+    """
+    if z <= 0.0:
+        return dx, dy, nx * dx, ny * dy
+    dqx = wavelength * z / (nx * padding * dx)
+    dqy = wavelength * z / (ny * padding * dy)
+    Sx_out = nx * dqx
+    Sy_out = ny * dqy
+    return dqx, dqy, Sx_out, Sy_out
+
 

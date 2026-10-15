@@ -4,6 +4,7 @@ Runs validation tests, generates metrics tables, and renders publication assets.
 """
 
 import argparse
+import csv
 import json
 import os
 import sys
@@ -16,6 +17,12 @@ from diffraction import (
     create_grid,
     circular_aperture,
     rectangular_aperture,
+    double_slit_aperture,
+    annular_aperture,
+    gaussian_field,
+    binary_grating,
+    triangular_aperture,
+    shifted_circular_aperture,
     propagate_asm,
     propagate_blas,
     propagate_fresnel,
@@ -25,6 +32,8 @@ from diffraction import (
     airy_pattern,
     sinc_pattern,
     relative_l2_error,
+    compute_shared_region_l2_error,
+    sas_output_scaling,
     total_power,
     radial_profile,
     find_first_radial_minimum,
@@ -33,6 +42,9 @@ from visualize import (
     generate_fig01_aperture_diffraction,
     generate_fig02_methods_errors,
     generate_fig03_results_profiles,
+    generate_fig04_aperture_gallery_a,
+    generate_fig05_aperture_gallery_b,
+    generate_fig06_distance_sweep,
     generate_primary_loop_gif,
     generate_error_loop_gif,
 )
@@ -167,18 +179,18 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
 
 
 def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
-    """Generate metrics comparing propagation methods across resolutions and distances."""
+    """Generate fair metrics comparing propagation methods on shared physical coordinates."""
     wavelength = 532e-9
     radius = 1.5e-4
     z_eval = 0.50
     metrics_rows = []
 
-    # Sampling sweep: Fixed FOV (S = 2.56 mm)
+    # Experiment 1: Sampling sweep with fixed input window (S_in = 2.56 mm)
     resolutions = [256, 512] if quick else [256, 512, 1024]
-    fov = 2.56e-3
+    fov_in = 2.56e-3
 
     for n in resolutions:
-        dx = fov / n
+        dx = fov_in / n
         grid = create_grid(nx=n, ny=n, dx=dx, dy=dx)
         u_in = circular_aperture(grid, radius=radius)
         i_ref = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
@@ -199,36 +211,45 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
             t_elapsed = time.perf_counter() - t0
 
             i_out = np.abs(u_out)**2
+
             if method == "sas":
-                i_ref_eval = airy_pattern(grid_out, wavelength, z=z_eval, radius=radius)
+                i_ref_sas = airy_pattern(grid_out, wavelength, z=z_eval, radius=radius)
                 fov_out = grid_out.Sx * 1e3
                 dx_out_um = grid_out.dx * 1e6
+                coverage = f"Scaled ({fov_out:.1f} mm)"
+                shared_raw = compute_shared_region_l2_error(i_out, grid_out, i_ref_sas, x_max=fov_in / 2, y_max=fov_in / 2)
+                mask_sh = (np.abs(grid_out.X) <= fov_in / 2) & (np.abs(grid_out.Y) <= fov_in / 2)
+                shared_peak = relative_l2_error(i_out[mask_sh] / np.max(i_out), i_ref_sas[mask_sh] / np.max(i_ref_sas))
+                full_raw = relative_l2_error(i_out, i_ref_sas)
             else:
-                i_ref_eval = i_ref
-                fov_out = fov * 1e3
+                fov_out = fov_in * 1e3
                 dx_out_um = dx * 1e6
-
-            err_raw = relative_l2_error(i_out, i_ref_eval)
-            err_peak = relative_l2_error(i_out / np.max(i_out), i_ref_eval / np.max(i_ref_eval))
+                coverage = f"Shared ({fov_out:.2f} mm)"
+                shared_raw = relative_l2_error(i_out, i_ref)
+                shared_peak = relative_l2_error(i_out / np.max(i_out), i_ref / np.max(i_ref))
+                full_raw = shared_raw
 
             metrics_rows.append({
                 "experiment": "fixed_fov",
                 "N": n,
+                "method": method,
                 "dx_um": round(dx_out_um, 3),
                 "fov_mm": round(fov_out, 3),
+                "coverage_status": coverage,
                 "z_m": z_eval,
-                "method": method,
                 "runtime_s": round(t_elapsed, 4),
-                "relative_error_raw_pct": round(err_raw * 100.0, 3),
-                "relative_error_peak_pct": round(err_peak * 100.0, 3),
+                "shared_error_raw_pct": round(shared_raw * 100.0, 3),
+                "shared_error_peak_pct": round(shared_peak * 100.0, 3),
+                "full_fov_error_raw_pct": round(full_raw * 100.0, 3),
             })
 
-    # Far-field aliasing comparison at z = 0.80 m
+    # Experiment 2: Far-field aliasing comparison at z = 0.80 m
     n_ff = 256 if quick else 512
     dx_ff = 5e-6
     grid_ff = create_grid(nx=n_ff, ny=n_ff, dx=dx_ff, dy=dx_ff)
     u_in_ff = circular_aperture(grid_ff, radius=radius)
     i_ref_ff = airy_pattern(grid_ff, wavelength, z=0.80, radius=radius)
+    s_in_ff = grid_ff.Sx
 
     for method in ["fresnel", "asm", "blas", "sas"]:
         t0 = time.perf_counter()
@@ -246,28 +267,36 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
         t_elapsed = time.perf_counter() - t0
 
         i_out = np.abs(u_out)**2
+
         if method == "sas":
-            i_ref_eval = airy_pattern(grid_out, wavelength, z=0.80, radius=radius)
+            i_ref_sas = airy_pattern(grid_out, wavelength, z=0.80, radius=radius)
             fov_out = grid_out.Sx * 1e3
             dx_out_um = grid_out.dx * 1e6
+            coverage = f"Full ({fov_out:.1f} mm)"
+            shared_raw = compute_shared_region_l2_error(i_out, grid_out, i_ref_sas, x_max=s_in_ff / 2, y_max=s_in_ff / 2)
+            mask_sh = (np.abs(grid_out.X) <= s_in_ff / 2) & (np.abs(grid_out.Y) <= s_in_ff / 2)
+            shared_peak = relative_l2_error(i_out[mask_sh] / np.max(i_out), i_ref_sas[mask_sh] / np.max(i_ref_sas))
+            full_raw_val = round(relative_l2_error(i_out, i_ref_sas) * 100.0, 3)
         else:
-            i_ref_eval = i_ref_ff
-            fov_out = n_ff * dx_ff * 1e3
+            fov_out = grid_ff.Sx * 1e3
             dx_out_um = dx_ff * 1e6
-
-        err_raw = relative_l2_error(i_out, i_ref_eval)
-        err_peak = relative_l2_error(i_out / np.max(i_out), i_ref_eval / np.max(i_ref_eval))
+            coverage = f"Clipped ({fov_out:.2f} mm)"
+            shared_raw = relative_l2_error(i_out, i_ref_ff)
+            shared_peak = relative_l2_error(i_out / np.max(i_out), i_ref_ff / np.max(i_ref_ff))
+            full_raw_val = "N/A (clipped)"
 
         metrics_rows.append({
             "experiment": "far_field_aliasing",
             "N": n_ff,
+            "method": method,
             "dx_um": round(dx_out_um, 3),
             "fov_mm": round(fov_out, 3),
+            "coverage_status": coverage,
             "z_m": 0.80,
-            "method": method,
             "runtime_s": round(t_elapsed, 4),
-            "relative_error_raw_pct": round(err_raw * 100.0, 3),
-            "relative_error_peak_pct": round(err_peak * 100.0, 3),
+            "shared_error_raw_pct": round(shared_raw * 100.0, 3),
+            "shared_error_peak_pct": round(shared_peak * 100.0, 3),
+            "full_fov_error_raw_pct": full_raw_val,
         })
 
     return metrics_rows
@@ -280,7 +309,6 @@ def save_results(validations: Dict[str, Any], metrics: List[Dict[str, Any]]) -> 
     with open("results/validation.json", "w", encoding="utf-8") as f:
         json.dump(validations, f, indent=2)
 
-    import csv
     with open("results/metrics.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(metrics[0].keys()))
         writer.writeheader()
@@ -290,16 +318,19 @@ def save_results(validations: Dict[str, Any], metrics: List[Dict[str, Any]]) -> 
 def main():
     parser = argparse.ArgumentParser(description="Reproduce scalar diffraction experiments.")
     parser.add_argument("--quick", action="store_true", help="Run fast verification with smaller grids.")
-    parser.add_argument("--figure-only", action="store_true", help="Only generate publication figures 1-3.")
+    parser.add_argument("--figure-only", action="store_true", help="Only generate publication figures 1 to 6.")
     parser.add_argument("--gif-only", action="store_true", help="Only generate animated loop GIFs.")
     parser.add_argument("--all", action="store_true", help="Run validation, benchmarks, and all figures and GIFs.")
     args = parser.parse_args()
 
     if args.figure_only:
-        print("Generating Figures 1, 2, and 3...")
+        print("Generating Figures 1 through 6...")
         generate_fig01_aperture_diffraction()
         generate_fig02_methods_errors()
         generate_fig03_results_profiles()
+        generate_fig04_aperture_gallery_a()
+        generate_fig05_aperture_gallery_b()
+        generate_fig06_distance_sweep()
         print("Figures saved in assets/")
         return
 
@@ -323,10 +354,13 @@ def main():
     save_results(validations, metrics)
     print("Metrics written to results/metrics.csv and results/validation.json")
 
-    print("Rendering Figures 1, 2, and 3...")
+    print("Rendering Figures 1 through 6...")
     generate_fig01_aperture_diffraction()
     generate_fig02_methods_errors()
     generate_fig03_results_profiles()
+    generate_fig04_aperture_gallery_a()
+    generate_fig05_aperture_gallery_b()
+    generate_fig06_distance_sweep()
 
     print("Rendering animated GIFs...")
     n1 = generate_primary_loop_gif()
