@@ -3,7 +3,8 @@
     "passed": true,
     "error_asm": 2.0056839351362928e-16,
     "error_blas": 2.0056839351362928e-16,
-    "error_fresnel": 2.0056839351362928e-16
+    "error_fresnel": 2.0056839351362928e-16,
+    "error_sas": 0.0
   },
   "circular_fraunhofer_airy": {
     "passed": true,
@@ -11,6 +12,13 @@
     "r1_measured_m": 0.001088,
     "r1_relative_error": 0.006065393564115659,
     "profile_l2_error": 0.016234156359230936
+  },
+  "scalable_angular_spectrum_airy": {
+    "passed": true,
+    "r1_theory_m": 0.0010814406369208471,
+    "r1_measured_m": 0.0010861666666666667,
+    "r1_relative_error": 0.00437012405902911,
+    "profile_l2_error": 0.0035854119871924334
   },
   "rectangular_fraunhofer_sinc": {
     "passed": true,

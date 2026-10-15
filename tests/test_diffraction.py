@@ -9,6 +9,8 @@ from diffraction import (
     propagate_asm,
     propagate_blas,
     propagate_fresnel,
+    propagate_sas,
+    propagate_sft_fresnel,
     propagate_rs_direct,
     airy_first_zero,
     airy_pattern,
@@ -180,3 +182,96 @@ def test_bandlimit_frequencies_shrink_with_distance():
 
     assert fx_1 > fx_2 > fx_3
     assert fy_1 > fy_2 > fy_3
+
+
+def test_sas_zero_distance_identity():
+    """Verify that SAS propagation at z=0 reproduces input field to machine precision."""
+    grid = create_grid(nx=128, ny=128, dx=5e-6, dy=5e-6)
+    u_in = circular_aperture(grid, radius=1.5e-4)
+    wavelength = 532e-9
+
+    u_sas, grid_out = propagate_sas(u_in, wavelength, z=0.0, dx=grid.dx, dy=grid.dy, padding=2)
+
+    assert relative_l2_error(u_sas, u_in) < 1e-14
+    assert np.isclose(grid_out.dx, grid.dx)
+    assert np.isclose(grid_out.dy, grid.dy)
+
+
+def test_sas_circular_fraunhofer_airy():
+    """Verify Scalable Angular Spectrum against analytical Airy diffraction on scaled grid."""
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    radius = 1.5e-4
+    z = 0.50
+
+    grid_in = create_grid(nx, ny, dx, dy)
+    u_in = circular_aperture(grid_in, radius=radius)
+    u_sas, grid_out = propagate_sas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+
+    i_sas = np.abs(u_sas)**2
+    i_ana = airy_pattern(grid_out, wavelength, z=z, radius=radius)
+
+    # Check output grid pitch formula: dq = lambda * z / (2 * N * dx)
+    expected_dq = wavelength * z / (2 * nx * dx)
+    assert np.isclose(grid_out.dx, expected_dq)
+
+    # Relative L2 intensity error compared with analytical Airy pattern
+    p_sas_n = i_sas / np.max(i_sas)
+    p_ana_n = i_ana / np.max(i_ana)
+    rel_err = np.linalg.norm(p_sas_n - p_ana_n) / np.linalg.norm(p_ana_n)
+    assert rel_err < 0.015  # Measured ~0.67%
+
+    # Verify first dark ring position on scaled radial profile
+    r_num, prof_num = radial_profile(i_sas, grid_out.x, grid_out.y, num_bins=120)
+    r1_theory = airy_first_zero(wavelength, z, radius)
+    r1_meas = find_first_radial_minimum(r_num, prof_num, search_range=(0.7 * r1_theory, 1.4 * r1_theory))
+    assert abs(r1_meas - r1_theory) / r1_theory < 0.035  # Measured ~2.6% at N=256
+
+
+def test_sas_rectangular_fraunhofer_sinc():
+    """Verify Scalable Angular Spectrum rectangular diffraction against analytical sinc pattern."""
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    width, height = 3.0e-4, 4.5e-4
+    z = 0.50
+
+    grid_in = create_grid(nx, ny, dx, dy)
+    u_in = rectangular_aperture(grid_in, width=width, height=height)
+    u_sas, grid_out = propagate_sas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+
+    i_sas = np.abs(u_sas)**2
+    i_ana = sinc_pattern(grid_out, wavelength, z=z, width=width, height=height)
+
+    cy, cx = ny // 2, nx // 2
+    x_num = i_sas[cy, :] / np.max(i_sas[cy, :])
+    x_ana = i_ana[cy, :] / np.max(i_ana[cy, :])
+    y_num = i_sas[:, cx] / np.max(i_sas[:, cx])
+    y_ana = i_ana[:, cx] / np.max(i_ana[:, cx])
+
+    err_x = np.linalg.norm(x_num - x_ana) / np.linalg.norm(x_ana)
+    err_y = np.linalg.norm(y_num - y_ana) / np.linalg.norm(y_ana)
+
+    assert err_x < 0.03  # Measured ~1.4%
+    assert err_y < 0.05  # Measured ~2.75%
+
+
+def test_sas_vs_single_step_fresnel_near_field():
+    """Verify that SAS differs from single-step Fresnel when non-paraxial correction is active."""
+    nx, ny = 128, 128
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    radius = 1.0e-4
+    z = 0.05
+
+    grid_in = create_grid(nx, ny, dx, dy)
+    u_in = circular_aperture(grid_in, radius=radius)
+
+    u_sas, _ = propagate_sas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+    u_fr, _ = propagate_sft_fresnel(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+
+    diff = np.linalg.norm(u_sas - u_fr) / np.linalg.norm(u_sas)
+    # The non-paraxial precompensation introduces a measurable phase/amplitude correction
+    assert diff > 1e-4
+

@@ -138,6 +138,143 @@ def fresnel_transfer_function(grid: Grid, wavelength: float, z: float) -> np.nda
     return np.exp(1j * (k * z - np.pi * wavelength * z * fsq))
 
 
+def sas_bandlimit_mask(
+    fx: np.ndarray,
+    fy: np.ndarray,
+    wavelength: float,
+    z: float,
+    Lx: float,
+    Ly: float,
+) -> np.ndarray:
+    """Calculate the antialiasing bandlimit mask for SAS precompensation.
+
+    Reference: Heintzmann, Loetgering, & Wechsler, Optica 10(11), 1407 (2023), Eq. 16.
+    """
+    if z <= 0.0:
+        return np.ones_like(fx, dtype=np.float64)
+
+    cx = wavelength * fx
+    cy = wavelength * fy
+    tx = np.maximum(Lx / (2.0 * z) + np.abs(cx), 1e-12)
+    ty = np.maximum(Ly / (2.0 * z) + np.abs(cy), 1e-12)
+
+    cond_x = (cx**2 * (1.0 + tx**2) / (tx**2) + cy**2) <= 1.0
+    cond_y = (cy**2 * (1.0 + ty**2) / (ty**2) + cx**2) <= 1.0
+    return (cond_x & cond_y).astype(np.float64)
+
+
+def propagate_sas(
+    field: np.ndarray,
+    wavelength: float,
+    z: float,
+    dx: float,
+    dy: float,
+    padding: int = 2,
+) -> Tuple[np.ndarray, Grid]:
+    """Propagate field using Scalable Angular Spectrum (SAS).
+
+    Combines non-paraxial transfer difference precompensation with a single-step
+    Fresnel transform, evaluating the field on a naturally expanding grid
+    dq = lambda * z / (N * padding * dx) using three successive FFT operations.
+
+    Reference: Heintzmann, Loetgering, & Wechsler, Optica 10(11), 1407-1416 (2023).
+    DOI: 10.1364/OPTICA.499636
+    """
+    if field.ndim != 2:
+        raise ValueError("Field array must be 2D.")
+    if z < 0.0:
+        raise ValueError("Propagation distance must be non-negative.")
+
+    ny, nx = field.shape
+    if z == 0.0:
+        return field.copy(), create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+
+    padded, crop_slices = pad_field(field, factor=padding)
+    ny_p, nx_p = padded.shape
+    pgrid = create_grid(nx=nx_p, ny=ny_p, dx=dx, dy=dy)
+
+    fsq = pgrid.FX**2 + pgrid.FY**2
+    inv_lam_sq = (1.0 / wavelength)**2
+    prop_mask = fsq <= inv_lam_sq
+
+    h_as = np.zeros_like(fsq, dtype=np.complex128)
+    h_as[prop_mask] = np.sqrt(1.0 - (wavelength**2) * fsq[prop_mask])
+    h_fr = 1.0 - 0.5 * (wavelength**2) * fsq
+
+    w_mask = sas_bandlimit_mask(pgrid.FX, pgrid.FY, wavelength, z, pgrid.Sx, pgrid.Sy)
+    k = 2.0 * np.pi / wavelength
+    delta_h = w_mask * np.exp(1j * k * z * (h_as - h_fr))
+
+    # Precompensation: 1 forward FFT + 1 inverse FFT
+    spec = fftshift(fft2(ifftshift(padded)))
+    u_precomp = fftshift(ifft2(ifftshift(spec * delta_h)))
+
+    # Single-step Fresnel scaling transform: 1 forward FFT
+    h1 = np.exp(1j * (k / (2.0 * z)) * (pgrid.X**2 + pgrid.Y**2))
+    u_chirped = u_precomp * h1
+
+    dqx = wavelength * z / pgrid.Sx
+    dqy = wavelength * z / pgrid.Sy
+    u_scaled_p = fftshift(fft2(ifftshift(u_chirped))) * (dx * dy / (1j * wavelength * z))
+
+    qx = (np.arange(nx_p) - nx_p / 2.0) * dqx
+    qy = (np.arange(ny_p) - ny_p / 2.0) * dqy
+    qx_grid, qy_grid = np.meshgrid(qx, qy)
+
+    h2 = np.exp(1j * k * z) * np.exp(1j * (k / (2.0 * z)) * (qx_grid**2 + qy_grid**2))
+    u_scaled_p = h2 * u_scaled_p
+
+    u_out = u_scaled_p[crop_slices]
+    grid_out = create_grid(nx=nx, ny=ny, dx=dqx, dy=dqy)
+    return u_out, grid_out
+
+
+def propagate_sft_fresnel(
+    field: np.ndarray,
+    wavelength: float,
+    z: float,
+    dx: float,
+    dy: float,
+    padding: int = 2,
+) -> Tuple[np.ndarray, Grid]:
+    """Single-step Fresnel transform propagation on a scaled observation grid.
+
+    Equivalent to SAS without the non-paraxial precompensation phase filter.
+    """
+    if field.ndim != 2:
+        raise ValueError("Field array must be 2D.")
+    if z < 0.0:
+        raise ValueError("Propagation distance must be non-negative.")
+
+    ny, nx = field.shape
+    if z == 0.0:
+        return field.copy(), create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+
+    padded, crop_slices = pad_field(field, factor=padding)
+    ny_p, nx_p = padded.shape
+    pgrid = create_grid(nx=nx_p, ny=ny_p, dx=dx, dy=dy)
+
+    k = 2.0 * np.pi / wavelength
+    h1 = np.exp(1j * (k / (2.0 * z)) * (pgrid.X**2 + pgrid.Y**2))
+    u_chirped = padded * h1
+
+    dqx = wavelength * z / pgrid.Sx
+    dqy = wavelength * z / pgrid.Sy
+    u_scaled_p = fftshift(fft2(ifftshift(u_chirped))) * (dx * dy / (1j * wavelength * z))
+
+    qx = (np.arange(nx_p) - nx_p / 2.0) * dqx
+    qy = (np.arange(ny_p) - ny_p / 2.0) * dqy
+    qx_grid, qy_grid = np.meshgrid(qx, qy)
+
+    h2 = np.exp(1j * k * z) * np.exp(1j * (k / (2.0 * z)) * (qx_grid**2 + qy_grid**2))
+    u_scaled_p = h2 * u_scaled_p
+
+    u_out = u_scaled_p[crop_slices]
+    grid_out = create_grid(nx=nx, ny=ny, dx=dqx, dy=dqy)
+    return u_out, grid_out
+
+
+
 def propagate(
     field: np.ndarray,
     wavelength: float,

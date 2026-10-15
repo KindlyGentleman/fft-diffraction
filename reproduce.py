@@ -19,6 +19,7 @@ from diffraction import (
     propagate_asm,
     propagate_blas,
     propagate_fresnel,
+    propagate_sas,
     propagate_rs_direct,
     airy_first_zero,
     airy_pattern,
@@ -48,21 +49,24 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
     u_asm_0 = propagate_asm(u_0, wavelength, z=0.0, dx=grid_0.dx, dy=grid_0.dy)
     u_blas_0 = propagate_blas(u_0, wavelength, z=0.0, dx=grid_0.dx, dy=grid_0.dy)
     u_fres_0 = propagate_fresnel(u_0, wavelength, z=0.0, dx=grid_0.dx, dy=grid_0.dy)
+    u_sas_0, _ = propagate_sas(u_0, wavelength, z=0.0, dx=grid_0.dx, dy=grid_0.dy)
 
     err_asm_0 = relative_l2_error(u_asm_0, u_0)
     err_blas_0 = relative_l2_error(u_blas_0, u_0)
     err_fres_0 = relative_l2_error(u_fres_0, u_0)
+    err_sas_0 = relative_l2_error(u_sas_0, u_0)
 
     results["zero_distance_identity"] = {
-        "passed": bool(max(err_asm_0, err_blas_0, err_fres_0) < 1e-14),
+        "passed": bool(max(err_asm_0, err_blas_0, err_fres_0, err_sas_0) < 1e-14),
         "error_asm": float(err_asm_0),
         "error_blas": float(err_blas_0),
         "error_fresnel": float(err_fres_0),
+        "error_sas": float(err_sas_0),
     }
 
     # Test 2: Analytical Airy disc validation at z = 0.50 m
     n_airy = 256 if quick else 512
-    dx_airy = 5e-6
+    dx_airy = 10e-6 if quick else 5e-6
     radius = 1.5e-4
     z_airy = 0.50
 
@@ -90,6 +94,29 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
         "r1_measured_m": float(r1_meas),
         "r1_relative_error": float(r1_err_rel),
         "profile_l2_error": float(prof_err),
+    }
+
+    # Test 2b: Scalable Angular Spectrum Airy validation at z = 0.50 m
+    u_sas_airy, grid_sas_airy = propagate_sas(u_circ_in, wavelength, z=z_airy, dx=dx_airy, dy=dx_airy, padding=2)
+    i_sas_num = np.abs(u_sas_airy)**2
+    i_sas_ana = airy_pattern(grid_sas_airy, wavelength, z=z_airy, radius=radius)
+
+    r_sas_num, prof_sas_num = radial_profile(i_sas_num, grid_sas_airy.x, grid_sas_airy.y, num_bins=300)
+    r_sas_ana, prof_sas_ana = radial_profile(i_sas_ana, grid_sas_airy.x, grid_sas_airy.y, num_bins=300)
+
+    r1_sas_meas = find_first_radial_minimum(r_sas_num, prof_sas_num, search_range=(0.7 * r1_theory, 1.4 * r1_theory))
+    r1_sas_err_rel = abs(r1_sas_meas - r1_theory) / r1_theory
+
+    p_sas_num_n = prof_sas_num / np.max(prof_sas_num)
+    p_sas_ana_n = prof_sas_ana / np.max(prof_sas_ana)
+    prof_sas_err = float(np.linalg.norm(p_sas_num_n - p_sas_ana_n) / np.linalg.norm(p_sas_ana_n))
+
+    results["scalable_angular_spectrum_airy"] = {
+        "passed": bool(r1_sas_err_rel < 0.02 and prof_sas_err < 0.02),
+        "r1_theory_m": float(r1_theory),
+        "r1_measured_m": float(r1_sas_meas),
+        "r1_relative_error": float(r1_sas_err_rel),
+        "profile_l2_error": float(prof_sas_err),
     }
 
     # Test 3: Rectangular aperture sinc validation at z = 0.50 m
@@ -139,7 +166,7 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
     return results
 
 
-def run_benchmark_metrics() -> List[Dict[str, Any]]:
+def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
     """Generate metrics comparing propagation methods across resolutions and distances."""
     wavelength = 532e-9
     radius = 1.5e-4
@@ -147,7 +174,7 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
     metrics_rows = []
 
     # Sampling sweep: Fixed FOV (S = 2.56 mm)
-    resolutions = [256, 512, 1024]
+    resolutions = [256, 512] if quick else [256, 512, 1024]
     fov = 2.56e-3
 
     for n in resolutions:
@@ -156,25 +183,39 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
         u_in = circular_aperture(grid, radius=radius)
         i_ref = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
 
-        for method in ["fresnel", "asm", "blas"]:
+        for method in ["fresnel", "asm", "blas", "sas"]:
             t0 = time.perf_counter()
             if method == "fresnel":
                 u_out = propagate_fresnel(u_in, wavelength, z=z_eval, dx=dx, dy=dx, padding=2)
+                grid_out = grid
             elif method == "asm":
                 u_out = propagate_asm(u_in, wavelength, z=z_eval, dx=dx, dy=dx, padding=2)
-            else:
+                grid_out = grid
+            elif method == "blas":
                 u_out = propagate_blas(u_in, wavelength, z=z_eval, dx=dx, dy=dx, padding=2)
+                grid_out = grid
+            else:
+                u_out, grid_out = propagate_sas(u_in, wavelength, z=z_eval, dx=dx, dy=dx, padding=2)
             t_elapsed = time.perf_counter() - t0
 
             i_out = np.abs(u_out)**2
-            err_raw = relative_l2_error(i_out, i_ref)
-            err_peak = relative_l2_error(i_out / np.max(i_out), i_ref / np.max(i_ref))
+            if method == "sas":
+                i_ref_eval = airy_pattern(grid_out, wavelength, z=z_eval, radius=radius)
+                fov_out = grid_out.Sx * 1e3
+                dx_out_um = grid_out.dx * 1e6
+            else:
+                i_ref_eval = i_ref
+                fov_out = fov * 1e3
+                dx_out_um = dx * 1e6
+
+            err_raw = relative_l2_error(i_out, i_ref_eval)
+            err_peak = relative_l2_error(i_out / np.max(i_out), i_ref_eval / np.max(i_ref_eval))
 
             metrics_rows.append({
                 "experiment": "fixed_fov",
                 "N": n,
-                "dx_um": dx * 1e6,
-                "fov_mm": fov * 1e3,
+                "dx_um": round(dx_out_um, 3),
+                "fov_mm": round(fov_out, 3),
                 "z_m": z_eval,
                 "method": method,
                 "runtime_s": round(t_elapsed, 4),
@@ -183,31 +224,45 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
             })
 
     # Far-field aliasing comparison at z = 0.80 m
-    n_ff = 512
+    n_ff = 256 if quick else 512
     dx_ff = 5e-6
     grid_ff = create_grid(nx=n_ff, ny=n_ff, dx=dx_ff, dy=dx_ff)
     u_in_ff = circular_aperture(grid_ff, radius=radius)
     i_ref_ff = airy_pattern(grid_ff, wavelength, z=0.80, radius=radius)
 
-    for method in ["fresnel", "asm", "blas"]:
+    for method in ["fresnel", "asm", "blas", "sas"]:
         t0 = time.perf_counter()
         if method == "fresnel":
             u_out = propagate_fresnel(u_in_ff, wavelength, z=0.80, dx=dx_ff, dy=dx_ff, padding=2)
+            grid_out = grid_ff
         elif method == "asm":
             u_out = propagate_asm(u_in_ff, wavelength, z=0.80, dx=dx_ff, dy=dx_ff, padding=2)
-        else:
+            grid_out = grid_ff
+        elif method == "blas":
             u_out = propagate_blas(u_in_ff, wavelength, z=0.80, dx=dx_ff, dy=dx_ff, padding=2)
+            grid_out = grid_ff
+        else:
+            u_out, grid_out = propagate_sas(u_in_ff, wavelength, z=0.80, dx=dx_ff, dy=dx_ff, padding=2)
         t_elapsed = time.perf_counter() - t0
 
         i_out = np.abs(u_out)**2
-        err_raw = relative_l2_error(i_out, i_ref_ff)
-        err_peak = relative_l2_error(i_out / np.max(i_out), i_ref_ff / np.max(i_ref_ff))
+        if method == "sas":
+            i_ref_eval = airy_pattern(grid_out, wavelength, z=0.80, radius=radius)
+            fov_out = grid_out.Sx * 1e3
+            dx_out_um = grid_out.dx * 1e6
+        else:
+            i_ref_eval = i_ref_ff
+            fov_out = n_ff * dx_ff * 1e3
+            dx_out_um = dx_ff * 1e6
+
+        err_raw = relative_l2_error(i_out, i_ref_eval)
+        err_peak = relative_l2_error(i_out / np.max(i_out), i_ref_eval / np.max(i_ref_eval))
 
         metrics_rows.append({
             "experiment": "far_field_aliasing",
             "N": n_ff,
-            "dx_um": dx_ff * 1e6,
-            "fov_mm": n_ff * dx_ff * 1e3,
+            "dx_um": round(dx_out_um, 3),
+            "fov_mm": round(fov_out, 3),
             "z_m": 0.80,
             "method": method,
             "runtime_s": round(t_elapsed, 4),
@@ -264,7 +319,7 @@ def main():
     print(f"Validation status: {status_str}")
 
     print("Benchmarking propagation methods and sampling convergence...")
-    metrics = run_benchmark_metrics()
+    metrics = run_benchmark_metrics(quick=args.quick)
     save_results(validations, metrics)
     print("Metrics written to results/metrics.csv and results/validation.json")
 
