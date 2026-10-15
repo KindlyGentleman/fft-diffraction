@@ -12,15 +12,19 @@ $$\left(\nabla^2 + k^2\right) U(x, y, z) = 0, \qquad k = \frac{2\pi}{\lambda}$$
 
 Taking the 2D Fourier transform of an input field $U_0(x, y)$, multiplying by the free-space transfer function $H(f_x, f_y, z)$, and taking an inverse Fourier transform yields the propagated field:
 
-$$U(x, y, z) = \mathcal{F}^{-1}\left\{ \mathcal{F}\{U_0(x, y)\} \cdot \exp\left(i 2\pi z \sqrt{\frac{1}{\lambda^2} - f_x^2 - f_y^2}\right) \right\}$$
+$$U(x, y, z) = \mathcal{F}^{-1}\left[ \mathcal{F}[U_0(x, y)] \cdot \exp\left(i 2\pi z \sqrt{\frac{1}{\lambda^2} - f_x^2 - f_y^2}\right) \right]$$
 
 In practice, discrete computational grids introduce fundamental numerical limits:
 1. **Transfer Function Phase Chirp**: The phase factor $\phi(f_x, f_y) = 2\pi z \sqrt{1/\lambda^2 - f_x^2 - f_y^2}$ behaves like a quadratic chirp. As propagation distance $z$ grows, its local oscillation frequency accelerates. Once the phase changes by more than $\pi$ radians between adjacent grid points, the discrete transfer function aliases. Beyond the critical distance:
+
    $$z_c = \frac{S \Delta x_s}{\lambda}$$
+
    standard Angular Spectrum Method (ASM) fills the computational window with severe moiré interference artifacts.
 2. **Fixed-Pitch Truncation**: Band-Limited ASM (Matsushima and Shimobaba, 2009) cures transfer-function aliasing by zeroing unresolvable high frequencies. However, it preserves the source sampling pitch ($\Delta x_d = \Delta x_s$). When a diffracted beam spreads in the far field, fixed-grid methods either truncate the outer rings or require large zero-padding arrays.
 3. **Scalable Observation Coordinates**: Scalable Angular Spectrum (SAS) propagation (Heintzmann, Lötgering, and Wechsler, 2023) replaces the second inverse FFT with a spatial Fourier transform. This naturally scales the observation pitch with propagation distance:
+
    $$\Delta x_d = \frac{\lambda z}{p N \Delta x_s}$$
+
    allowing the calculation to track expanding far-field diffraction patterns without expanding the array size.
 
 ---
@@ -64,7 +68,9 @@ To prevent misleading array comparisons, numerical errors are evaluated strictly
 2. **Standard ASM**: The exact transfer function $\exp(i 2\pi z \sqrt{\lambda^{-2} - f_r^2})$ oscillates faster than the grid can resolve beyond $z_c = 24.1$ mm. At $z = 0.80$ m, the simulation is deep inside the aliased regime ($z / z_c \approx 33$). Spatial frequencies reflect back into the window as speckled noise ($15.34\%$ error).
 3. **Band-Limited ASM**: By limiting the spatial frequency passband to $f_{\max} = \frac{S - 2a}{2 \lambda z}$, BL-ASM eliminates transfer function aliasing. Over the shared core region, error drops to $2.78\%$. However, because its coordinate grid remains fixed at $2.56$ mm, BL-ASM cannot record the outer $26\%$ of the central Airy disc or any secondary diffraction rings.
 4. **Scalable Angular Spectrum (SAS)**: Employs transfer difference precompensation:
+
    $$H_{\mathrm{diff}}(f_x, f_y) = \exp\left(i k z \left[\sqrt{1 - \lambda^2(f_x^2 + f_y^2)} - \left(1 - \frac{\lambda^2}{2}(f_x^2 + f_y^2)\right)\right]\right)$$
+
    followed by a scaled coordinate Fourier transform. The observation window expands to $42.56$ mm, comfortably framing the entire diffraction pattern with $1.26\%$ error on the shared core and $1.28\%$ over the full pattern.
 
 ---
@@ -133,12 +139,16 @@ To explore wave behavior across diverse pupil shapes and phase distributions, ei
 
 #### Physical Analysis of Gallery B
 5. **Gaussian Beam**: Because the continuous Fourier transform of a Gaussian function is another Gaussian function:
-   $$\mathcal{F}\left\{\exp\left(-\frac{r^2}{w_0^2}\right)\right\} \propto \exp\left(-\pi^2 w_0^2 f_r^2\right)$$
+
+   $$\mathcal{F}\left[\exp\left(-\frac{r^2}{w_0^2}\right)\right] \propto \exp\left(-\pi^2 w_0^2 f_r^2\right)$$
+
    the beam expands smoothly without high-frequency edge-diffraction ripples. The beam radius grows according to $w(z) = w_0 \sqrt{1 + (z / z_R)^2}$ where $z_R = \pi w_0^2 / \lambda \approx 85.1$ mm.
 6. **Binary Grating**: The periodic square-wave transmission acts as a 1D spatial frequency comb. In the far field, light is channeled into discrete diffraction orders located at $x_m \approx m \frac{\lambda z}{\Lambda} = m \cdot 1.06$ mm. The $50\%$ duty cycle suppresses even orders, producing dominant $m = 0, \pm 1$ peaks.
 7. **Equilateral Triangular Aperture**: Although the triangular pupil has 3-fold rotational symmetry without central inversion symmetry, the Fraunhofer intensity $|U(x, y)|^2$ must obey inversion symmetry ($I(-x, -y) = I(x, y)$ for real apertures). This produces a six-pointed diffraction star with spikes oriented perpendicular to the three aperture edges.
 8. **Off-Axis Circular Aperture**: Under the Fourier shift theorem:
-   $$\mathcal{F}\{U_0(x - x_0, y - y_0)\} = \tilde{U}_0(f_x, f_y) \exp(-i 2\pi (f_x x_0 + f_y y_0))$$
+
+   $$\mathcal{F}[U_0(x - x_0, y - y_0)] = \tilde{U}_0(f_x, f_y) \exp\left(-i 2\pi (f_x x_0 + f_y y_0)\right)$$
+
    Translating the aperture off-center introduces a linear phase ramp in frequency space. The propagated intensity distribution shifts rigidly to $(+0.25, +0.25)$ mm without distortion of the Airy envelope.
 
 ---
