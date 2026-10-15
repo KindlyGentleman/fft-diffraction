@@ -1,0 +1,21 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Outputs and logs
+outputs/data/*.npz
+outputs/logs/*.log
+!outputs/figures/
+!outputs/video/
+
+# OS specific
+.DS_Store
+Thumbs.db

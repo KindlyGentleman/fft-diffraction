@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software or benchmark data in your research, please cite it as below."
+title: "Numerical Accuracy and Sampling Limitations of FFT-Based Scalar Diffraction Models"
+authors:
+  - family-names: "Europhotonics Computational Photonics Research Group"
+date-released: 2026-10-15
+url: "https://github.com/europhotonics/diffraction-fft-accuracy"
+keywords:
+  - "scalar diffraction"
+  - "angular spectrum method"
+  - "Fresnel diffraction"
+  - "band-limiting"
+  - "optical wave propagation"
+  - "Fourier optics"

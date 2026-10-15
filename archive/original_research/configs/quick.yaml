@@ -1,0 +1,49 @@
+mode: "quick"
+description: "Quick reproducible parameter sweep for rapid verification on modest CPU hardware"
+
+wavelength: 5.32e-7
+
+apertures:
+  circular:
+    radius: 1.5e-4
+  rectangular:
+    width: 3.0e-4
+    height: 4.5e-4
+
+study1_distances:
+  grid:
+    nx: 512
+    ny: 512
+    dx: 5.0e-6
+    dy: 5.0e-6
+    padding: 2
+  distances: [0.001, 0.005, 0.020, 0.100, 0.300, 0.800]
+
+study2_sampling:
+  fixed_fov:
+    fov: 2.56e-3
+    resolutions: [256, 512, 1024]
+    distance: 0.500
+  fixed_pitch:
+    dx: 5.0e-6
+    resolutions: [256, 512, 1024]
+    distance: 0.500
+
+study3_bandlimiting:
+  grid:
+    nx: 512
+    ny: 512
+    dx: 5.0e-6
+    dy: 5.0e-6
+    padding: 2
+  test_cases:
+    - name: "well_sampled_near"
+      distance: 0.005
+    - name: "aliasing_prone_far"
+      distance: 0.300
+    - name: "extreme_far"
+      distance: 0.800
+
+benchmarks:
+  repeats: 3
+  resolutions: [256, 512, 1024]

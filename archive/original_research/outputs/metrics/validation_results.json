@@ -1,0 +1,54 @@
+{
+  "TEST_A": {
+    "test": "TEST_A_ZERO_DISTANCE",
+    "passed": true,
+    "error_asm": 2.7729281048007654e-16,
+    "error_blas": 2.7729281048007654e-16,
+    "error_fresnel": 2.7729281048007654e-16
+  },
+  "TEST_B": {
+    "test": "TEST_B_PLANE_WAVE",
+    "passed": true,
+    "error_asm": 0.0,
+    "error_blas": 0.0,
+    "error_fresnel": 0.0
+  },
+  "TEST_C": {
+    "test": "TEST_C_FFT_CONSISTENCY",
+    "passed": true,
+    "roundtrip_error": 3.8607882825651023e-16
+  },
+  "TEST_D": {
+    "test": "TEST_D_CIRCULAR_FRAUNHOFER",
+    "passed": true,
+    "r1_theory_m": 0.0010814406369229674,
+    "r1_measured_m": 0.001088,
+    "r1_relative_error": 0.006065393562143174,
+    "profile_l2_error": 0.016234156359230815
+  },
+  "TEST_E": {
+    "test": "TEST_E_RECTANGULAR_FRAUNHOFER",
+    "passed": true,
+    "slice_x_error": 0.016515017500825707,
+    "slice_y_error": 0.026359782583504774
+  },
+  "TEST_F": {
+    "test": "TEST_F_NEAR_FIELD_DIRECT_INTEGRATION",
+    "passed": true,
+    "relative_l2_error": 0.038926084659347805
+  },
+  "TEST_H": {
+    "test": "TEST_H_ENERGY_CONSERVATION",
+    "passed": true,
+    "input_energy": 3.1225000000000003e-08,
+    "discrepancy_asm": 0.00022913609685381702,
+    "discrepancy_blas": 0.00022913609685381702,
+    "discrepancy_fresnel": 0.00022513091779321402
+  },
+  "TEST_I": {
+    "test": "TEST_I_WAVEPROP_COMPARISON",
+    "passed": true,
+    "intensity_relative_l2_error": 7.997383346125063e-12
+  },
+  "ALL_TESTS_PASSED": true
+}

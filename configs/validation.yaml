@@ -1,0 +1,29 @@
+wavelength: 5.32e-7
+
+apertures:
+  circular:
+    radius: 1.5e-4
+    center: [0.0, 0.0]
+  rectangular:
+    width: 3.0e-4
+    height: 4.5e-4
+    center: [0.0, 0.0]
+
+grid:
+  nx: 512
+  ny: 512
+  dx: 5.0e-6
+  dy: 5.0e-6
+  padding_factor: 2
+
+distances:
+  near: 0.005
+  intermediate: 0.050
+  far: 0.500
+
+tolerances:
+  zero_distance: 1.0e-12
+  plane_wave_relative: 1.0e-10
+  fft_roundtrip: 1.0e-14
+  airy_first_zero_relative: 0.05
+  waveprop_relative_l2: 1.0e-5
