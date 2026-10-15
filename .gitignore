@@ -1,21 +1,15 @@
-# Python bytecode and caches
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .pytest_cache/
-.coverage
-htmlcov/
-dist/
-build/
-*.egg-info/
 
-# Outputs and logs
-outputs/data/*.npz
-outputs/logs/*.log
-!outputs/figures/
-!outputs/video/
+# Local archive of original research
+archive/
 
-# OS specific
-.DS_Store
-Thumbs.db
+# Environments and IDE
+.venv/
+venv/
+.vscode/
+.idea/

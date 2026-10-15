@@ -1,0 +1,24 @@
+{
+  "zero_distance_identity": {
+    "passed": true,
+    "error_asm": 2.0056839351362928e-16,
+    "error_blas": 2.0056839351362928e-16,
+    "error_fresnel": 2.0056839351362928e-16
+  },
+  "circular_fraunhofer_airy": {
+    "passed": true,
+    "r1_theory_m": 0.0010814406369208471,
+    "r1_measured_m": 0.001088,
+    "r1_relative_error": 0.006065393564115659,
+    "profile_l2_error": 0.016234156359230936
+  },
+  "rectangular_fraunhofer_sinc": {
+    "passed": true,
+    "slice_x_error": 0.016515017500825707,
+    "slice_y_error": 0.026359782583504767
+  },
+  "near_field_direct_integration": {
+    "passed": true,
+    "relative_l2_error": 0.038926084659347805
+  }
+}
