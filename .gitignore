@@ -5,9 +5,6 @@ __pycache__/
 *.so
 .pytest_cache/
 
-# Local archive of original research
-archive/
-
 # Environments and IDE
 .venv/
 venv/

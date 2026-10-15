@@ -1,12 +1,15 @@
-"""Scientific visualization script for scalar diffraction experiments.
+"""Scientific visualization module for FFT scalar diffraction experiments.
 
 Generates:
-1. Double-column 3x3 IEEE-style composite figure (PDF and 400+ DPI PNG).
-2. Smoothly looping dual-panel animated GIF of field evolution.
+1. Fig 1: 2x2 Apertures aligned above their corresponding diffraction fields.
+2. Fig 2: 2x2 Standard ASM vs Band-Limited ASM intensity and error maps.
+3. Fig 3: 2x2 Propagated intensities with quantitative analytical profiles.
+4. Primary GIF: 2x2 Static apertures above animated diffraction fields.
+5. Error GIF: 2x2 Standard ASM vs BL-ASM intensity and error evolution.
 """
 
 import os
-from typing import Optional
+from typing import Tuple, List, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -18,15 +21,15 @@ from diffraction import (
     rectangular_aperture,
     propagate_asm,
     propagate_blas,
-    propagate_fresnel,
     airy_first_zero,
     airy_pattern,
     sinc_pattern,
     radial_profile,
     find_first_radial_minimum,
+    relative_l2_error,
 )
 
-# IEEE style configuration
+# Apply IEEE publication style
 try:
     import scienceplots
     plt.style.use(["science", "ieee", "no-latex"])
@@ -38,6 +41,7 @@ except Exception:
         "legend.fontsize": 7,
         "xtick.labelsize": 7,
         "ytick.labelsize": 7,
+        "figure.titlesize": 9,
         "mathtext.fontset": "dejavuserif",
     })
 
@@ -49,290 +53,393 @@ COLORS = {
 }
 
 
-def generate_composite_figure(
-    output_png: str = "assets/diffraction_figure.png",
-    output_pdf: str = "assets/diffraction_figure.pdf",
+def generate_fig01_aperture_diffraction(
+    output_png: str = "assets/fig01_aperture_diffraction.png",
+    output_pdf: str = "assets/fig01_aperture_diffraction.pdf",
     dpi: int = 400,
 ) -> None:
-    """Generate the complete 3x3 publication composite figure."""
+    """Generate Figure 1: 2x2 grid of input apertures aligned above diffraction fields."""
     os.makedirs(os.path.dirname(output_png), exist_ok=True)
-    os.makedirs(os.path.dirname(output_pdf), exist_ok=True)
 
-    fig = plt.figure(figsize=(7.16, 7.2), dpi=dpi)
-    gs = GridSpec(3, 3, figure=fig, hspace=0.38, wspace=0.38)
-
-    # Simulation setup for 2D field maps
     nx, ny = 512, 512
     dx, dy = 5e-6, 5e-6
     wavelength = 532e-9
+    z_prop = 0.50
     radius = 1.5e-4
-    z_map = 0.40
+    w_rect, h_rect = 3.0e-4, 4.5e-4
 
     grid = create_grid(nx, ny, dx, dy)
-    u_circ = circular_aperture(grid, radius=radius)
-    u_asm = propagate_asm(u_circ, wavelength, z=z_map, dx=dx, dy=dy, padding=2)
-    u_blas = propagate_blas(u_circ, wavelength, z=z_map, dx=dx, dy=dy, padding=2)
-    i_ref = airy_pattern(grid, wavelength, z=z_map, radius=radius)
-
-    i_asm = np.abs(u_asm)**2
-    i_blas = np.abs(u_blas)**2
-
-    i_ref_norm = i_ref / np.max(i_ref)
-    i_asm_norm = i_asm / np.max(i_asm)
-    i_blas_norm = i_blas / np.max(i_blas)
-
-    err_asm = np.abs(i_asm_norm - i_ref_norm)
-    err_blas = np.abs(i_blas_norm - i_ref_norm)
-
     extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
 
-    # Panel (a): Optical Diffraction Schematic
+    u_circ_in = circular_aperture(grid, radius=radius)
+    u_rect_in = rectangular_aperture(grid, width=w_rect, height=h_rect)
+
+    u_circ_out = propagate_blas(u_circ_in, wavelength, z=z_prop, dx=dx, dy=dy, padding=2)
+    u_rect_out = propagate_blas(u_rect_in, wavelength, z=z_prop, dx=dx, dy=dy, padding=2)
+
+    i_circ = np.abs(u_circ_out)**2
+    i_rect = np.abs(u_rect_out)**2
+
+    i_circ_norm = i_circ / np.max(i_circ)
+    i_rect_norm = i_rect / np.max(i_rect)
+
+    fig = plt.figure(figsize=(7.16, 6.2), dpi=dpi)
+    gs = GridSpec(2, 2, figure=fig, hspace=0.30, wspace=0.25)
+
+    # Panel (a): Input Circular Aperture
     ax_a = fig.add_subplot(gs[0, 0])
-    ax_a.axis("off")
-    # Incident illumination arrows
-    for y_pos in np.linspace(-0.8, 0.8, 5):
-        ax_a.annotate(
-            "",
-            xy=(-1.2, y_pos),
-            xytext=(-2.0, y_pos),
-            arrowprops=dict(arrowstyle="->", color=COLORS["asm"], lw=1.2),
-        )
-    ax_a.text(-1.6, 1.1, "Incident\n$\\lambda = 532$ nm", ha="center", fontsize=6.5, color=COLORS["asm"])
+    ax_a.imshow(np.abs(u_circ_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+    ax_a.set_title("(a) Circular Aperture ($2a = 0.30$ mm)", fontsize=8)
+    ax_a.set_xlabel("$x$ [mm]")
+    ax_a.set_ylabel("$y$ [mm]")
 
-    # Aperture screen
-    ax_a.plot([-1.2, -1.2], [0.45, 1.3], color="black", lw=3.0)
-    ax_a.plot([-1.2, -1.2], [-1.3, -0.45], color="black", lw=3.0)
-    ax_a.plot([-1.2, -1.2], [-0.45, 0.45], color="#66a61e", lw=1.2, ls="--")
-    ax_a.text(-1.2, 1.45, "Aperture\n$z = 0$", ha="center", fontsize=7, weight="bold")
-    ax_a.text(-1.05, 0.0, "Diameter $2a$", ha="left", va="center", fontsize=6.5)
-
-    # Observation screen
-    ax_a.plot([1.4, 1.4], [-1.3, 1.3], color="#7570b3", lw=2.2)
-    ax_a.text(1.4, 1.45, "Detector\n$z = z_0$", ha="center", fontsize=7, weight="bold", color="#7570b3")
-
-    # Propagation ray annotations
-    ax_a.plot([-1.2, 1.4], [0.45, 1.0], color="#e6ab02", ls=":", lw=1.0)
-    ax_a.plot([-1.2, 1.4], [-0.45, -1.0], color="#e6ab02", ls=":", lw=1.0)
-    ax_a.plot([-1.2, 1.4], [0.0, 0.0], color="gray", ls="-.", lw=0.8)
-    ax_a.text(1.5, 0.0, "$z$", va="center", fontsize=6.5, color="gray")
-
-    ax_a.annotate(
-        "",
-        xy=(1.4, -1.5),
-        xytext=(-1.2, -1.5),
-        arrowprops=dict(arrowstyle="<->", color="black", lw=1.0),
-    )
-    ax_a.text(0.1, -1.75, "Distance $z$", ha="center", fontsize=6.5)
-    ax_a.set_xlim(-2.2, 2.0)
-    ax_a.set_ylim(-2.0, 1.8)
-    ax_a.text(-2.1, 1.6, "(a)", fontsize=8, weight="bold")
-
-    # Panel (b): Standard ASM Intensity (Aliased)
+    # Panel (b): Input Rectangular Aperture
     ax_b = fig.add_subplot(gs[0, 1])
-    im_b = ax_b.imshow(np.sqrt(i_asm_norm), extent=extent, origin="lower", cmap="magma", vmin=0, vmax=1)
-    ax_b.set_title("Standard ASM ($z = 0.4$ m)", fontsize=7.5)
+    ax_b.imshow(np.abs(u_rect_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+    ax_b.set_title("(b) Rectangular Aperture ($0.30 \\times 0.45$ mm)", fontsize=8)
     ax_b.set_xlabel("$x$ [mm]")
     ax_b.set_ylabel("$y$ [mm]")
-    ax_b.text(-1.15, 1.05, "(b)", fontsize=8, weight="bold", color="white")
-    cbar_b = fig.colorbar(im_b, ax=ax_b, fraction=0.046, pad=0.04)
-    cbar_b.set_label("Norm. $|U|$", fontsize=6.5)
-    cbar_b.ax.tick_params(labelsize=6)
 
-    # Panel (c): BL-ASM Intensity (Clean)
-    ax_c = fig.add_subplot(gs[0, 2])
-    im_c = ax_c.imshow(np.sqrt(i_blas_norm), extent=extent, origin="lower", cmap="magma", vmin=0, vmax=1)
-    ax_c.set_title("Band-Limited ASM ($z = 0.4$ m)", fontsize=7.5)
+    # Panel (c): Circular Aperture Diffraction Result
+    ax_c = fig.add_subplot(gs[1, 0])
+    im_c = ax_c.imshow(i_circ_norm, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+    ax_c.set_title("(c) Circular Diffraction ($z = 0.50$ m)", fontsize=8)
     ax_c.set_xlabel("$x$ [mm]")
     ax_c.set_ylabel("$y$ [mm]")
-    ax_c.text(-1.15, 1.05, "(c)", fontsize=8, weight="bold", color="white")
-    cbar_c = fig.colorbar(im_c, ax=ax_c, fraction=0.046, pad=0.04)
-    cbar_c.set_label("Norm. $|U|$", fontsize=6.5)
-    cbar_c.ax.tick_params(labelsize=6)
 
-    # Panel (d): Standard ASM Error Map
-    ax_d = fig.add_subplot(gs[1, 0])
-    vmax_err = 0.20
-    im_d = ax_d.imshow(err_asm, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=vmax_err)
-    ax_d.set_title("ASM Error ($|I_{num} - I_{ref}|)$", fontsize=7.5)
+    # Panel (d): Rectangular Aperture Diffraction Result
+    ax_d = fig.add_subplot(gs[1, 1])
+    im_d = ax_d.imshow(i_rect_norm, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+    ax_d.set_title("(d) Rectangular Diffraction ($z = 0.50$ m)", fontsize=8)
     ax_d.set_xlabel("$x$ [mm]")
     ax_d.set_ylabel("$y$ [mm]")
-    ax_d.text(-1.15, 1.05, "(d)", fontsize=8, weight="bold", color="white")
-    cbar_d = fig.colorbar(im_d, ax=ax_d, fraction=0.046, pad=0.04)
-    cbar_d.set_label("Error", fontsize=6.5)
-    cbar_d.ax.tick_params(labelsize=6)
 
-    # Panel (e): BL-ASM Error Map (Shared color scale)
-    ax_e = fig.add_subplot(gs[1, 1])
-    im_e = ax_e.imshow(err_blas, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=vmax_err)
-    ax_e.set_title("BL-ASM Error ($|I_{num} - I_{ref}|)$", fontsize=7.5)
-    ax_e.set_xlabel("$x$ [mm]")
-    ax_e.set_ylabel("$y$ [mm]")
-    ax_e.text(-1.15, 1.05, "(e)", fontsize=8, weight="bold", color="white")
-    cbar_e = fig.colorbar(im_e, ax=ax_e, fraction=0.046, pad=0.04)
-    cbar_e.set_label("Error", fontsize=6.5)
-    cbar_e.ax.tick_params(labelsize=6)
+    # Shared colorbar for bottom diffraction panels
+    cbar = fig.colorbar(im_d, ax=[ax_c, ax_d], orientation="horizontal", fraction=0.045, pad=0.18, aspect=35)
+    cbar.set_label("Normalized Intensity $I / I_{\\max}$", fontsize=7.5)
+    cbar.ax.tick_params(labelsize=6.5)
 
-    # Panel (f): Circular Airy Profile Validation at z = 0.50 m
-    ax_f = fig.add_subplot(gs[1, 2])
-    z_airy = 0.50
-    u_airy_blas = propagate_blas(u_circ, wavelength, z=z_airy, dx=dx, dy=dy, padding=2)
-    u_airy_asm = propagate_asm(u_circ, wavelength, z=z_airy, dx=dx, dy=dy, padding=2)
-    i_airy_ref = airy_pattern(grid, wavelength, z=z_airy, radius=radius)
-
-    r_num, prof_blas = radial_profile(np.abs(u_airy_blas)**2, grid.x, grid.y, num_bins=150)
-    _, prof_asm = radial_profile(np.abs(u_airy_asm)**2, grid.x, grid.y, num_bins=150)
-    r_ref, prof_ref = radial_profile(i_airy_ref, grid.x, grid.y, num_bins=150)
-
-    r1_theory = airy_first_zero(wavelength, z_airy, radius) * 1e3
-    r_mm = r_num * 1e3
-
-    ax_f.plot(r_ref * 1e3, prof_ref / np.max(prof_ref), color=COLORS["ref"], ls="--", lw=1.2, label="Analytical")
-    ax_f.plot(r_mm, prof_blas / np.max(prof_blas), color=COLORS["blas"], lw=1.0, label="BL-ASM")
-    ax_f.plot(r_mm, prof_asm / np.max(prof_asm), color=COLORS["asm"], lw=0.8, ls=":", label="ASM")
-    ax_f.axvline(r1_theory, color="#e41a1c", ls="-.", lw=0.8, label=f"$r_1={r1_theory:.2f}$ mm")
-
-    ax_f.set_xlim(0, 1.25)
-    ax_f.set_ylim(-0.02, 1.05)
-    ax_f.set_title("Airy Radial Profile ($z=0.5$ m)", fontsize=7.5)
-    ax_f.set_xlabel("Radius $r$ [mm]")
-    ax_f.set_ylabel("Norm. Intensity")
-    ax_f.legend(loc="upper right", frameon=False, fontsize=5.5)
-    ax_f.text(0.04, 0.96, "(f)", fontsize=8, weight="bold", transform=ax_f.transAxes)
-
-    # Panel (g): Rectangular Aperture Sinc Cross-Sections at z = 0.50 m
-    ax_g = fig.add_subplot(gs[2, 0])
-    w_rect, h_rect = 3.0e-4, 4.5e-4
-    u_rect = rectangular_aperture(grid, width=w_rect, height=h_rect)
-    u_rect_out = propagate_blas(u_rect, wavelength, z=z_airy, dx=dx, dy=dy, padding=2)
-    i_rect_num = np.abs(u_rect_out)**2
-    i_rect_ana = sinc_pattern(grid, wavelength, z=z_airy, width=w_rect, height=h_rect)
-
-    cx, cy = nx // 2, ny // 2
-    x_mm = grid.x * 1e3
-    y_mm = grid.y * 1e3
-
-    ax_g.plot(x_mm, i_rect_ana[cy, :] / np.max(i_rect_ana[cy, :]), color=COLORS["ref"], ls="--", lw=1.1, label="Ana. $x$")
-    ax_g.plot(x_mm, i_rect_num[cy, :] / np.max(i_rect_num[cy, :]), color=COLORS["blas"], lw=0.9, label="BL-ASM $x$")
-    ax_g.plot(y_mm, i_rect_num[:, cx] / np.max(i_rect_num[:, cx]), color=COLORS["fresnel"], lw=0.9, ls="-.", label="BL-ASM $y$")
-
-    ax_g.set_xlim(-1.2, 1.2)
-    ax_g.set_ylim(-0.02, 1.05)
-    ax_g.set_title("Rectangular Sinc ($z=0.5$ m)", fontsize=7.5)
-    ax_g.set_xlabel("Coordinate [mm]")
-    ax_g.set_ylabel("Norm. Intensity")
-    ax_g.legend(loc="upper right", frameon=False, fontsize=5.5)
-    ax_g.text(0.04, 0.96, "(g)", fontsize=8, weight="bold", transform=ax_g.transAxes)
-
-    # Panel (h): Fixed FOV Sampling Convergence (S = 2.56 mm)
-    ax_h = fig.add_subplot(gs[2, 1])
-    n_points = np.array([256, 512, 1024])
-    # Audited numerical errors from study2_sampling.csv (fixed FOV)
-    err_fov_fres = np.array([6.61, 7.33, 6.84])
-    err_fov_asm = np.array([6.79, 7.11, 6.79])
-    err_fov_blas = np.array([2.95, 1.87, 1.40])
-
-    ax_h.plot(n_points, err_fov_fres, marker="o", color=COLORS["fresnel"], lw=1.0, ms=3.5, label="Fresnel")
-    ax_h.plot(n_points, err_fov_asm, marker="s", color=COLORS["asm"], lw=1.0, ms=3.5, label="ASM")
-    ax_h.plot(n_points, err_fov_blas, marker="^", color=COLORS["blas"], lw=1.2, ms=4.0, label="BL-ASM")
-
-    ax_h.set_title("Fixed FOV ($S=2.56$ mm)", fontsize=7.5)
-    ax_h.set_xlabel("Grid Points $N$")
-    ax_h.set_ylabel("Relative Error [\\%]")
-    ax_h.set_xticks(n_points)
-    ax_h.set_ylim(0, 10)
-    ax_h.grid(True, ls=":", lw=0.5, alpha=0.6)
-    ax_h.legend(loc="center right", frameon=False, fontsize=5.5)
-    ax_h.text(0.04, 0.96, "(h)", fontsize=8, weight="bold", transform=ax_h.transAxes)
-
-    # Panel (i): Fixed Pitch Window Expansion Convergence (dx = 5.0 um)
-    ax_i = fig.add_subplot(gs[2, 2])
-    # Audited numerical errors from study2_sampling.csv (fixed pitch, expanding window)
-    fov_sizes = np.array([1.28, 2.56, 5.12])
-    err_pitch_fres = np.array([22.07, 7.33, 3.90])
-    err_pitch_asm = np.array([22.27, 7.11, 3.77])
-    err_pitch_blas = np.array([5.15, 1.87, 1.62])
-
-    ax_i.plot(fov_sizes, err_pitch_fres, marker="o", color=COLORS["fresnel"], lw=1.0, ms=3.5, label="Fresnel")
-    ax_i.plot(fov_sizes, err_pitch_asm, marker="s", color=COLORS["asm"], lw=1.0, ms=3.5, label="ASM")
-    ax_i.plot(fov_sizes, err_pitch_blas, marker="^", color=COLORS["blas"], lw=1.2, ms=4.0, label="BL-ASM")
-
-    ax_i.set_title("Window Expansion ($\\Delta x=5\\,\\mu$m)", fontsize=7.5)
-    ax_i.set_xlabel("Window Size $S$ [mm]")
-    ax_i.set_ylabel("Relative Error [\\%]")
-    ax_i.set_xticks(fov_sizes)
-    ax_i.set_ylim(0, 25)
-    ax_i.grid(True, ls=":", lw=0.5, alpha=0.6)
-    ax_i.legend(loc="upper right", frameon=False, fontsize=5.5)
-    ax_i.text(0.04, 0.96, "(i)", fontsize=8, weight="bold", transform=ax_i.transAxes)
+    fig.suptitle("Input Aperture Transmission and Propagated Scalar Diffraction Fields ($\\lambda = 532$ nm)", fontsize=9, y=0.98)
 
     plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
     plt.savefig(output_pdf, bbox_inches="tight")
     plt.close(fig)
 
 
-def generate_loop_gif(
-    output_gif: str = "assets/diffraction_loop.gif",
-    num_steps: int = 40,
-    fps: int = 14,
+def generate_fig02_methods_errors(
+    output_png: str = "assets/fig02_methods_errors.png",
+    output_pdf: str = "assets/fig02_methods_errors.pdf",
+    dpi: int = 400,
 ) -> None:
-    """Generate a compact, seamlessly looping side-by-side diffraction GIF."""
+    """Generate Figure 2: 2x2 comparison of Standard ASM vs BL-ASM with error maps."""
+    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    radius = 1.5e-4
+    z_eval = 0.80
+
+    grid = create_grid(nx, ny, dx, dy)
+    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
+
+    u_in = circular_aperture(grid, radius=radius)
+    u_asm = propagate_asm(u_in, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
+    u_blas = propagate_blas(u_in, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
+
+    i_ref = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
+    i_asm = np.abs(u_asm)**2
+    i_blas = np.abs(u_blas)**2
+
+    i_ref_max = np.max(i_ref)
+    i_asm_disp = i_asm / i_ref_max
+    i_blas_disp = i_blas / i_ref_max
+    i_ref_disp = i_ref / i_ref_max
+
+    err_asm = np.abs(i_asm_disp - i_ref_disp)
+    err_blas = np.abs(i_blas_disp - i_ref_disp)
+
+    # Recompute exact relative L2 errors from the displayed numerical arrays
+    l2_asm = relative_l2_error(i_asm, i_ref) * 100.0
+    l2_blas = relative_l2_error(i_blas, i_ref) * 100.0
+
+    fig = plt.figure(figsize=(7.16, 6.2), dpi=dpi)
+    gs = GridSpec(2, 2, figure=fig, hspace=0.30, wspace=0.25)
+
+    vmax_int = 1.05
+    vmax_err = 0.15
+
+    # Panel (a): Standard ASM Intensity
+    ax_a = fig.add_subplot(gs[0, 0])
+    im_a = ax_a.imshow(i_asm_disp, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
+    ax_a.set_title("(a) Standard ASM Intensity ($z = 0.80$ m)", fontsize=8)
+    ax_a.set_xlabel("$x$ [mm]")
+    ax_a.set_ylabel("$y$ [mm]")
+
+    # Panel (b): Band-Limited ASM Intensity
+    ax_b = fig.add_subplot(gs[0, 1])
+    im_b = ax_b.imshow(i_blas_disp, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=vmax_int)
+    ax_b.set_title("(b) Band-Limited ASM Intensity ($z = 0.80$ m)", fontsize=8)
+    ax_b.set_xlabel("$x$ [mm]")
+    ax_b.set_ylabel("$y$ [mm]")
+
+    # Panel (c): Standard ASM Error Map
+    ax_c = fig.add_subplot(gs[1, 0])
+    im_c = ax_c.imshow(err_asm, extent=extent, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
+    ax_c.set_title("(c) Standard ASM Error Map", fontsize=8)
+    ax_c.set_xlabel("$x$ [mm]")
+    ax_c.set_ylabel("$y$ [mm]")
+    ax_c.text(
+        0.04, 0.92, f"Relative $L_2$ error: {l2_asm:.2f}\\%",
+        transform=ax_c.transAxes, fontsize=6.8, color="white",
+        bbox=dict(boxstyle="round,pad=0.2", facecolor="black", alpha=0.6, lw=0)
+    )
+
+    # Panel (d): Band-Limited ASM Error Map
+    ax_d = fig.add_subplot(gs[1, 1])
+    im_d = ax_d.imshow(err_blas, extent=extent, origin="lower", cmap="magma", vmin=0, vmax=vmax_err)
+    ax_d.set_title("(d) Band-Limited ASM Error Map", fontsize=8)
+    ax_d.set_xlabel("$x$ [mm]")
+    ax_d.set_ylabel("$y$ [mm]")
+    ax_d.text(
+        0.04, 0.92, f"Relative $L_2$ error: {l2_blas:.2f}\\%",
+        transform=ax_d.transAxes, fontsize=6.8, color="white",
+        bbox=dict(boxstyle="round,pad=0.2", facecolor="black", alpha=0.6, lw=0)
+    )
+
+    # Separate shared colorbars for top intensity row and bottom error row
+    cbar_top = fig.colorbar(im_b, ax=[ax_a, ax_b], orientation="vertical", fraction=0.03, pad=0.04)
+    cbar_top.set_label("Intensity $I / I_{\\mathrm{ref},\\max}$", fontsize=7)
+    cbar_top.ax.tick_params(labelsize=6)
+
+    cbar_bot = fig.colorbar(im_d, ax=[ax_c, ax_d], orientation="vertical", fraction=0.03, pad=0.04)
+    cbar_bot.set_label("Absolute Error $|I - I_{\\mathrm{ref}}| / I_{\\mathrm{ref},\\max}$", fontsize=7)
+    cbar_bot.ax.tick_params(labelsize=6)
+
+    fig.suptitle(
+        "Numerical Aliasing Suppression: Standard ASM vs Band-Limited ASM ($\\lambda = 532$ nm, $2a = 0.30$ mm)",
+        fontsize=8.5, y=0.98
+    )
+
+    plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
+    plt.savefig(output_pdf, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_fig03_results_profiles(
+    output_png: str = "assets/fig03_results_profiles.png",
+    output_pdf: str = "assets/fig03_results_profiles.pdf",
+    dpi: int = 400,
+) -> None:
+    """Generate Figure 3: 2x2 grid combining 2D intensities with analytical profile plots."""
+    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    z_eval = 0.50
+    radius = 1.5e-4
+    w_rect, h_rect = 3.0e-4, 4.5e-4
+
+    grid = create_grid(nx, ny, dx, dy)
+    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
+
+    u_circ = circular_aperture(grid, radius=radius)
+    u_rect = rectangular_aperture(grid, width=w_rect, height=h_rect)
+
+    u_circ_out = propagate_blas(u_circ, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
+    u_rect_out = propagate_blas(u_rect, wavelength, z=z_eval, dx=dx, dy=dy, padding=2)
+
+    i_circ = np.abs(u_circ_out)**2
+    i_rect = np.abs(u_rect_out)**2
+
+    i_circ_ana = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
+    i_rect_ana = sinc_pattern(grid, wavelength, z=z_eval, width=w_rect, height=h_rect)
+
+    r_num, prof_circ_num = radial_profile(i_circ, grid.x, grid.y, num_bins=150)
+    r_ana, prof_circ_ana = radial_profile(i_circ_ana, grid.x, grid.y, num_bins=150)
+
+    r1_theory = airy_first_zero(wavelength, z_eval, radius)
+    r1_meas = find_first_radial_minimum(r_num, prof_circ_num, search_range=(0.7 * r1_theory, 1.4 * r1_theory))
+    r1_err = abs(r1_meas - r1_theory) / r1_theory * 100.0
+
+    p_num_n = prof_circ_num / np.max(prof_circ_num)
+    p_ana_n = prof_circ_ana / np.max(prof_circ_ana)
+    prof_l2_err = np.linalg.norm(p_num_n - p_ana_n) / np.linalg.norm(p_ana_n) * 100.0
+
+    cx, cy = nx // 2, ny // 2
+    x_num = i_rect[cy, :] / np.max(i_rect[cy, :])
+    x_ana = i_rect_ana[cy, :] / np.max(i_rect_ana[cy, :])
+    y_num = i_rect[:, cx] / np.max(i_rect[:, cx])
+    y_ana = i_rect_ana[:, cx] / np.max(i_rect_ana[:, cx])
+
+    err_x = np.linalg.norm(x_num - x_ana) / np.linalg.norm(x_ana) * 100.0
+    err_y = np.linalg.norm(y_num - y_ana) / np.linalg.norm(y_ana) * 100.0
+
+    fig = plt.figure(figsize=(7.16, 6.2), dpi=dpi)
+    gs = GridSpec(2, 2, figure=fig, hspace=0.34, wspace=0.28)
+
+    # Panel (a): 2D Circular Diffraction
+    ax_a = fig.add_subplot(gs[0, 0])
+    im_a = ax_a.imshow(i_circ / np.max(i_circ), extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+    ax_a.set_title("(a) Circular Diffraction ($z = 0.50$ m)", fontsize=8)
+    ax_a.set_xlabel("$x$ [mm]")
+    ax_a.set_ylabel("$y$ [mm]")
+
+    # Panel (b): 2D Rectangular Diffraction
+    ax_b = fig.add_subplot(gs[0, 1])
+    im_b = ax_b.imshow(i_rect / np.max(i_rect), extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+    ax_b.set_title("(b) Rectangular Diffraction ($z = 0.50$ m)", fontsize=8)
+    ax_b.set_xlabel("$x$ [mm]")
+    ax_b.set_ylabel("$y$ [mm]")
+
+    cbar_top = fig.colorbar(im_b, ax=[ax_a, ax_b], orientation="vertical", fraction=0.03, pad=0.04)
+    cbar_top.set_label("Norm. Intensity $I/I_{\\max}$", fontsize=7)
+    cbar_top.ax.tick_params(labelsize=6)
+
+    # Panel (c): Airy Radial Profile Comparison
+    ax_c = fig.add_subplot(gs[1, 0])
+    r_mm = r_num * 1e3
+    r1_theory_mm = r1_theory * 1e3
+
+    ax_c.plot(r_ana * 1e3, p_ana_n, color=COLORS["ref"], ls="--", lw=1.2, label="Analytical Airy")
+    ax_c.plot(r_mm, p_num_n, color=COLORS["blas"], lw=1.1, label="BL-ASM Numerical")
+    ax_c.axvline(r1_theory_mm, color="#e41a1c", ls="-.", lw=0.9, label=f"1st Zero ({r1_theory_mm:.2f} mm)")
+
+    ax_c.text(
+        0.48, 0.65,
+        f"First zero err: {r1_err:.2f}\\%\nProfile $L_2$ err: {prof_l2_err:.2f}\\%",
+        transform=ax_c.transAxes, fontsize=6.5,
+        bbox=dict(boxstyle="round,pad=0.2", facecolor="#f7f7f7", edgecolor="#cccccc", lw=0.6)
+    )
+
+    ax_c.set_xlim(0, 1.25)
+    ax_c.set_ylim(-0.02, 1.05)
+    ax_c.set_title("(c) Airy Radial Profile", fontsize=8)
+    ax_c.set_xlabel("Radius $r$ [mm]")
+    ax_c.set_ylabel("Normalized Intensity")
+    ax_c.legend(loc="upper right", frameon=False, fontsize=6.2)
+
+    # Panel (d): Sinc Cross-Section Comparison
+    ax_d = fig.add_subplot(gs[1, 1])
+    coord_mm = grid.x * 1e3
+
+    ax_d.plot(coord_mm, x_ana, color=COLORS["ref"], ls="--", lw=1.2, label="Analytical $x$")
+    ax_d.plot(coord_mm, x_num, color=COLORS["blas"], lw=1.1, label="BL-ASM $x$")
+    ax_d.plot(coord_mm, y_ana, color="#777777", ls=":", lw=1.1, label="Analytical $y$")
+    ax_d.plot(coord_mm, y_num, color=COLORS["fresnel"], ls="-.", lw=1.0, label="BL-ASM $y$")
+
+    ax_d.text(
+        0.52, 0.65,
+        f"Slice $x$ err: {err_x:.2f}\\%\nSlice $y$ err: {err_y:.2f}\\%",
+        transform=ax_d.transAxes, fontsize=6.5,
+        bbox=dict(boxstyle="round,pad=0.2", facecolor="#f7f7f7", edgecolor="#cccccc", lw=0.6)
+    )
+
+    ax_d.set_xlim(-1.25, 1.25)
+    ax_d.set_ylim(-0.02, 1.05)
+    ax_d.set_title("(d) Rectangular Sinc Cross-Sections", fontsize=8)
+    ax_d.set_xlabel("Coordinate [mm]")
+    ax_d.set_ylabel("Normalized Intensity")
+    ax_d.legend(loc="upper right", frameon=False, fontsize=6.2)
+
+    fig.suptitle(
+        "Quantitative Validation Against Analytical Fraunhofer Optics ($z = 0.50$ m)",
+        fontsize=8.5, y=0.98
+    )
+
+    plt.savefig(output_png, dpi=dpi, bbox_inches="tight")
+    plt.savefig(output_pdf, bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_primary_loop_gif(
+    output_gif: str = "assets/diffraction_loop.gif",
+    num_steps: int = 36,
+    fps: int = 14,
+) -> int:
+    """Generate primary seamless 2x2 loop GIF: Static apertures above evolving diffraction fields."""
     os.makedirs(os.path.dirname(output_gif), exist_ok=True)
 
     nx, ny = 256, 256
     dx, dy = 6e-6, 6e-6
     wavelength = 532e-9
     grid = create_grid(nx, ny, dx, dy)
+    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
 
-    circ_in = circular_aperture(grid, radius=1.2e-4)
-    rect_in = rectangular_aperture(grid, width=2.2e-4, height=3.2e-4)
+    u_circ_in = circular_aperture(grid, radius=1.2e-4)
+    u_rect_in = rectangular_aperture(grid, width=2.2e-4, height=3.2e-4)
 
-    # Logarithmically spaced propagation distances from near to far field
+    # Pre-render static top aperture images
+    fig_top, (ax_ta, ax_tb) = plt.subplots(1, 2, figsize=(6.2, 2.5), dpi=120)
+    fig_top.patch.set_facecolor("#111111")
+    ax_ta.imshow(np.abs(u_circ_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+    ax_ta.set_title("Circular Aperture ($2a = 0.24$ mm)", fontsize=8, color="white")
+    ax_ta.tick_params(colors="white")
+    ax_ta.set_ylabel("$y$ [mm]", color="white")
+
+    ax_tb.imshow(np.abs(u_rect_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+    ax_tb.set_title("Rectangular ($0.22 \\times 0.32$ mm)", fontsize=8, color="white")
+    ax_tb.tick_params(colors="white")
+    plt.close(fig_top)
+
     z_min = 0.005
     z_max = 0.250
     z_forward = np.geomspace(z_min, z_max, num_steps)
-    # Forward and backward parameter sweep for seamless looping
-    z_cycle = np.concatenate([z_forward, z_forward[::-1]])
+    # Ping-pong sequence without duplicating endpoints for smooth loop
+    z_cycle = np.concatenate([z_forward, z_forward[-2:0:-1]])
 
     frames = []
-    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
 
     for z_val in z_cycle:
-        u_circ = propagate_blas(circ_in, wavelength, z=z_val, dx=dx, dy=dy, padding=2)
-        u_rect = propagate_blas(rect_in, wavelength, z=z_val, dx=dx, dy=dy, padding=2)
+        u_circ = propagate_blas(u_circ_in, wavelength, z=z_val, dx=dx, dy=dy, padding=2)
+        u_rect = propagate_blas(u_rect_in, wavelength, z=z_val, dx=dx, dy=dy, padding=2)
 
-        # Gamma compressed normalized amplitude for clear fringe visibility
-        i_circ = np.abs(u_circ)**2
-        i_rect = np.abs(u_rect)**2
-        amp_circ = np.sqrt(i_circ / np.max(i_circ))
-        amp_rect = np.sqrt(i_rect / np.max(i_rect))
+        i_circ_disp = np.sqrt(np.abs(u_circ)**2 / np.max(np.abs(u_circ)**2))
+        i_rect_disp = np.sqrt(np.abs(u_rect)**2 / np.max(np.abs(u_rect)**2))
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(6.2, 3.2), dpi=120)
+        fig = plt.figure(figsize=(6.2, 5.2), dpi=120)
         fig.patch.set_facecolor("#111111")
+        gs = GridSpec(2, 2, figure=fig, hspace=0.30, wspace=0.25)
 
-        ax1.imshow(amp_circ, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
-        ax1.set_title(f"Circular ($2a = 0.24$ mm)", fontsize=8, color="white")
-        ax1.set_xlabel("$x$ [mm]", color="white")
-        ax1.set_ylabel("$y$ [mm]", color="white")
-        ax1.tick_params(colors="white")
+        # Top Row: Static Apertures
+        ax_a = fig.add_subplot(gs[0, 0])
+        ax_a.imshow(np.abs(u_circ_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+        ax_a.set_title("Circular Aperture ($2a = 0.24$ mm)", fontsize=7.5, color="white")
+        ax_a.set_ylabel("$y$ [mm]", color="white")
+        ax_a.tick_params(colors="white")
 
-        ax2.imshow(amp_rect, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
-        ax2.set_title(f"Rectangular ($0.22 \\times 0.32$ mm)", fontsize=8, color="white")
-        ax2.set_xlabel("$x$ [mm]", color="white")
-        ax2.tick_params(colors="white")
+        ax_b = fig.add_subplot(gs[0, 1])
+        ax_b.imshow(np.abs(u_rect_in), extent=extent, origin="lower", cmap="gray", vmin=0, vmax=1)
+        ax_b.set_title("Rectangular ($0.22 \\times 0.32$ mm)", fontsize=7.5, color="white")
+        ax_b.tick_params(colors="white")
 
-        # Global header with current distance and Fresnel number
+        # Bottom Row: Evolving Diffraction Fields
+        ax_c = fig.add_subplot(gs[1, 0])
+        ax_c.imshow(i_circ_disp, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+        ax_c.set_title("Circular Diffraction", fontsize=7.5, color="white")
+        ax_c.set_xlabel("$x$ [mm]", color="white")
+        ax_c.set_ylabel("$y$ [mm]", color="white")
+        ax_c.tick_params(colors="white")
+
+        ax_d = fig.add_subplot(gs[1, 1])
+        ax_d.imshow(i_rect_disp, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1)
+        ax_d.set_title("Rectangular Diffraction", fontsize=7.5, color="white")
+        ax_d.set_xlabel("$x$ [mm]", color="white")
+        ax_d.tick_params(colors="white")
+
         fresnel_num = (1.2e-4)**2 / (wavelength * z_val)
-        fig.suptitle(f"$z = {z_val * 1e3:5.1f}$ mm   |   $N_F = {fresnel_num:4.2f}$", fontsize=9, color="#66c2a5", y=0.98)
-        fig.tight_layout()
+        fig.suptitle(
+            f"Free-Space Propagation: $z = {z_val * 1e3:5.1f}$ mm   |   $N_F = {fresnel_num:4.2f}$",
+            fontsize=8.5, color="#66c2a5", y=0.98
+        )
 
-        # Render frame to memory buffer
         fig.canvas.draw()
-        rgba_buffer = np.asarray(fig.canvas.buffer_rgba())
-        img = Image.fromarray(rgba_buffer).convert("P", palette=Image.ADAPTIVE)
+        rgba = np.asarray(fig.canvas.buffer_rgba())
+        img = Image.fromarray(rgba).convert("P", palette=Image.ADAPTIVE)
         frames.append(img)
         plt.close(fig)
 
-    # Save animated GIF with infinite loop
     frames[0].save(
         output_gif,
         save_all=True,
@@ -341,8 +448,116 @@ def generate_loop_gif(
         loop=0,
         optimize=True,
     )
+    return len(frames)
+
+
+def generate_error_loop_gif(
+    output_gif: str = "assets/error_loop.gif",
+    num_steps: int = 28,
+    fps: int = 12,
+) -> int:
+    """Generate secondary 2x2 loop GIF: Standard ASM vs BL-ASM intensity and error evolution."""
+    os.makedirs(os.path.dirname(output_gif), exist_ok=True)
+
+    nx, ny = 256, 256
+    dx, dy = 6e-6, 6e-6
+    wavelength = 532e-9
+    radius = 1.2e-4
+
+    grid = create_grid(nx, ny, dx, dy)
+    extent = [grid.x[0] * 1e3, grid.x[-1] * 1e3, grid.y[0] * 1e3, grid.y[-1] * 1e3]
+    u_in = circular_aperture(grid, radius=radius)
+
+    # Far-field range where Fraunhofer analytical reference is rigorously valid
+    z_min = 0.35
+    z_max = 0.85
+    z_forward = np.linspace(z_min, z_max, num_steps)
+    z_cycle = np.concatenate([z_forward, z_forward[-2:0:-1]])
+
+    frames = []
+
+    for z_val in z_cycle:
+        u_asm = propagate_asm(u_in, wavelength, z=z_val, dx=dx, dy=dy, padding=2)
+        u_blas = propagate_blas(u_in, wavelength, z=z_val, dx=dx, dy=dy, padding=2)
+        i_ref = airy_pattern(grid, wavelength, z=z_val, radius=radius)
+
+        i_asm = np.abs(u_asm)**2
+        i_blas = np.abs(u_blas)**2
+
+        ref_max = np.max(i_ref)
+        i_asm_n = i_asm / ref_max
+        i_blas_n = i_blas / ref_max
+        i_ref_n = i_ref / ref_max
+
+        err_asm = np.abs(i_asm_n - i_ref_n)
+        err_blas = np.abs(i_blas_n - i_ref_n)
+
+        l2_asm = relative_l2_error(i_asm, i_ref) * 100.0
+        l2_blas = relative_l2_error(i_blas, i_ref) * 100.0
+
+        fig = plt.figure(figsize=(6.2, 5.2), dpi=120)
+        fig.patch.set_facecolor("#111111")
+        gs = GridSpec(2, 2, figure=fig, hspace=0.30, wspace=0.25)
+
+        # Top Row: Intensities
+        ax_a = fig.add_subplot(gs[0, 0])
+        ax_a.imshow(i_asm_n, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1.0)
+        ax_a.set_title("Standard ASM Intensity", fontsize=7.5, color="white")
+        ax_a.set_ylabel("$y$ [mm]", color="white")
+        ax_a.tick_params(colors="white")
+
+        ax_b = fig.add_subplot(gs[0, 1])
+        ax_b.imshow(i_blas_n, extent=extent, origin="lower", cmap="inferno", vmin=0, vmax=1.0)
+        ax_b.set_title("Band-Limited ASM Intensity", fontsize=7.5, color="white")
+        ax_b.tick_params(colors="white")
+
+        # Bottom Row: Error Maps
+        ax_c = fig.add_subplot(gs[1, 0])
+        ax_c.imshow(err_asm, extent=extent, origin="lower", cmap="magma", vmin=0, vmax=0.18)
+        ax_c.set_title(f"ASM Error (L2: {l2_asm:.1f}%)", fontsize=7.5, color="#fc8d62")
+        ax_c.set_xlabel("$x$ [mm]", color="white")
+        ax_c.set_ylabel("$y$ [mm]", color="white")
+        ax_c.tick_params(colors="white")
+
+        ax_d = fig.add_subplot(gs[1, 1])
+        ax_d.imshow(err_blas, extent=extent, origin="lower", cmap="magma", vmin=0, vmax=0.18)
+        ax_d.set_title(f"BL-ASM Error (L2: {l2_blas:.1f}%)", fontsize=7.5, color="#66c2a5")
+        ax_d.set_xlabel("$x$ [mm]", color="white")
+        ax_d.tick_params(colors="white")
+
+        fresnel_num = (1.2e-4)**2 / (wavelength * z_val)
+        fig.suptitle(
+            f"Aliasing Evolution: $z = {z_val * 1e3:5.0f}$ mm   |   $N_F = {fresnel_num:4.2f}$",
+            fontsize=8.5, color="white", y=0.98
+        )
+
+        fig.canvas.draw()
+        rgba = np.asarray(fig.canvas.buffer_rgba())
+        img = Image.fromarray(rgba).convert("P", palette=Image.ADAPTIVE)
+        frames.append(img)
+        plt.close(fig)
+
+    frames[0].save(
+        output_gif,
+        save_all=True,
+        append_images=frames[1:],
+        duration=int(1000 / fps),
+        loop=0,
+        optimize=True,
+    )
+    return len(frames)
 
 
 if __name__ == "__main__":
-    generate_composite_figure()
-    generate_loop_gif()
+    print("Generating Figure 1 (Apertures above diffraction)...")
+    generate_fig01_aperture_diffraction()
+    print("Generating Figure 2 (Methods and error maps)...")
+    generate_fig02_methods_errors()
+    print("Generating Figure 3 (Results and profiles)...")
+    generate_fig03_results_profiles()
+    print("Generating Primary diffraction loop GIF...")
+    n_frames1 = generate_primary_loop_gif()
+    print(f"Primary GIF complete ({n_frames1} frames).")
+    print("Generating Error evolution loop GIF...")
+    n_frames2 = generate_error_loop_gif()
+    print(f"Error GIF complete ({n_frames2} frames).")

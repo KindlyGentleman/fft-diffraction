@@ -1,98 +1,107 @@
 # Playing with FFT Diffraction
 
-Comparing three ways to propagate light numerically.
+A small experiment comparing Fresnel, angular spectrum, and band-limited angular spectrum propagation.
 
-![Diffraction evolution across distance](assets/diffraction_loop.gif)
+![Aperture and diffraction evolution across distance](assets/diffraction_loop.gif)
 
-A small experiment comparing Fresnel, angular spectrum, and band-limited angular spectrum propagation, mostly to see what happens when numerical sampling goes wrong.
+## What I tried
 
-## Why I tried this
+Simulating how a light wave spreads through free space using Fourier optics sounds straightforward on paper. Under the scalar Helmholtz equation, each plane wave component acquires a phase shift determined by its spatial frequency. Taking an FFT of the aperture field, multiplying by the free-space transfer function, and taking an inverse FFT should give the field at any distance $z$.
 
-In optical textbooks, propagating a scalar coherent wave field using Fourier transforms looks deceptively straightforward. The wave equation gives an exact transfer function for each spatial frequency, so a quick pair of 2D FFTs should solve free-space diffraction at any distance.
+In practice, discrete grids make this trickier than the textbook formulas suggest. The transfer function phase factor $\exp(i k_z z)$ exhibits quadratic chirp behavior. As the propagation distance $z$ grows, its local oscillation frequency accelerates. Once the phase oscillates faster than one cycle per two grid pixels, the discrete grid aliases. Moiré fringes and wraparound artifacts corrupt the result. I wanted to test where standard propagators fail and how well the band-limiting method from Matsushima and Shimobaba (2009) handles the problem.
 
-In practice, sampling constraints turn out to be tricky. At large propagation distances, the quadratic phase chirp of the transfer function oscillates faster than the discrete frequency grid can support. High-frequency phase aliasing kicks in, producing artificial moire patterns and energy wraparound. I wanted to see exactly how and when each method breaks down, and whether the band-limiting technique proposed by Matsushima and Shimobaba (2009) really fixes the problem without introducing worse artifacts.
+## Apertures and propagated fields
 
-## The experiment
+I set up monochromatic illumination ($\lambda = 532$ nm) on two canonical apertures: a circular pinhole ($2a = 0.30$ mm) and a rectangular slit ($0.30 \times 0.45$ mm), sampled on a $512 \times 512$ grid with pitch $\Delta x = 5.0\,\mu$m (computational window $S = 2.56$ mm). Twofold zero-padding was applied to prevent circular convolution wrap-around.
 
-I implemented three standard FFT-based propagators in Python:
+![Input apertures and corresponding diffraction fields](assets/fig01_aperture_diffraction.png)
 
-1. **Fresnel transfer function**: The paraxial approximation, replacing the spherical wave dispersion with a parabolic phase kernel:
-   $$H_F(f_x, f_y, z) = e^{i k z} \exp\left[-i \pi \lambda z (f_x^2 + f_y^2)\right]$$
-2. **Standard Angular Spectrum (ASM)**: The exact dispersion relation for the Helmholtz equation with exponential decay for evanescent modes ($f_x^2 + f_y^2 > 1/\lambda^2$):
-   $$H_{AS}(f_x, f_y, z) = \exp\left(i 2\pi z \sqrt{\frac{1}{\lambda^2} - f_x^2 - f_y^2}\right)$$
-3. **Band-Limited Angular Spectrum (BL-ASM)**: The Matsushima-Shimobaba formulation, which applies an analytical rectangular band-limiting window to prune spatial frequencies whose local phase gradient exceeds the Nyquist limit of the grid:
-   $$f_{x,\text{limit}} = \frac{1}{\lambda \sqrt{1 + \left(\frac{2z}{S_x}\right)^2}}$$
+Propagating to $z = 0.50$ m places both apertures in the Fraunhofer regime. The circular aperture produces the characteristic central Airy disc surrounded by concentric dark and bright rings. The rectangular aperture produces an orthogonal pattern of sinc sidelobes.
 
-All propagators were evaluated on circular ($r = 150\,\mu$m) and rectangular ($300 \times 450\,\mu$m) apertures under monochromatic illumination ($\lambda = 532$ nm) with double zero-padding to prevent circular convolution artifacts.
+## When numerical sampling goes wrong
 
-## Results
+The standard Angular Spectrum Method (ASM) uses the exact free-space dispersion relation:
 
-![Numerical diffraction comparison and sampling convergence](assets/diffraction_figure.png)
+$$H_{\mathrm{AS}}(f_x, f_y, z) = \exp\left(i 2\pi z \sqrt{\frac{1}{\lambda^2} - f_x^2 - f_y^2}\right)$$
 
-### Benchmark validation
+In continuous math, this is exact. On a discrete computer, the phase gradient $\partial \phi / \partial f_x$ exceeds the Nyquist limit beyond a critical distance $z_c = S \Delta x / \lambda$. For our setup ($S = 2.56$ mm, $\Delta x = 5\,\mu$m, $\lambda = 532$ nm), this cutoff occurs at just $z_c \approx 24$ mm.
 
-To ensure the numerical engine was sound before comparing failure regimes, each method was cross-checked against independent analytical and numerical benchmarks:
+When evaluated far beyond this threshold at $z = 0.80$ m, standard ASM fills the observation window with severe moiré interference artifacts:
 
-| Benchmark | Test Configuration | Theoretical / Reference Value | Measured Value | Relative Error |
+![Standard ASM versus Band-Limited ASM with error maps](assets/fig02_methods_errors.png)
+
+Band-Limited ASM (BL-ASM) addresses this by pruning spatial frequencies where the transfer function cannot be sampled properly:
+
+$$f_{x,\mathrm{limit}} = \frac{1}{\lambda \sqrt{1 + \left(\frac{2z}{S_x}\right)^2}}$$
+
+At $z = 0.80$ m, standard ASM produces 15.34% relative $L_2$ error (25.66% when comparing peak-normalized profiles). BL-ASM suppresses the unresolvable frequencies, dropping the error to 2.78% (a 5.5-fold improvement).
+
+The animation below shows how this aliasing noise builds up in standard ASM as propagation distance increases, while BL-ASM remains clean throughout:
+
+![Aliasing error evolution](assets/error_loop.gif)
+
+## Does the simulation agree with theory?
+
+To confirm that band-limiting does not destroy real physical information, I validated BL-ASM against analytical Fraunhofer solutions at $z = 0.50$ m:
+
+![Analytical Fraunhofer validation](assets/fig03_results_profiles.png)
+
+1. **Airy radial profile**: The measured first dark ring occurs at $r_1 = 1.088$ mm compared to the theoretical value of $1.081$ mm (0.61% relative position error). The overall radial profile matches the analytical $J_1(q)/q$ curve with 1.62% relative $L_2$ error.
+2. **Rectangular sinc cross-sections**: Horizontal and vertical slices through the rectangular diffraction pattern match analytical $\mathrm{sinc}^2$ profiles with 1.65% and 2.64% relative error.
+3. **Near-field direct integration**: At $z = 0.005$ m, where Fraunhofer formulas are invalid, BL-ASM agrees with an independent numerical Rayleigh-Sommerfeld direct integration within 3.89%.
+
+## A few numbers
+
+Summary of validation benchmarks and sampling convergence:
+
+| Benchmark / Experiment | Configuration | Metric | Measured Value | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| Zero-distance identity | Circular, $z = 0.0$ m | Input aperture field | Reconstructed field | $< 10^{-15}$ |
-| Airy first dark ring | Circular, $z = 0.50$ m | $r_1 = 1.081$ mm | $r_1 = 1.088$ mm | 0.61% |
-| Airy radial profile | Circular, $z = 0.50$ m | $J_1(q)/q$ profile | Azimuthal average | 1.62% |
-| Rectangular sinc ($x$) | Rectangular, $z = 0.50$ m | $\text{sinc}^2(W x / \lambda z)$ | Horizontal slice | 1.65% |
-| Rectangular sinc ($y$) | Rectangular, $z = 0.50$ m | $\text{sinc}^2(H y / \lambda z)$ | Vertical slice | 2.64% |
-| Near-field direct integration | Circular, $z = 0.005$ m | Rayleigh-Sommerfeld integral | BL-ASM field | 3.89% |
+| Zero-distance identity | Circular, $z = 0.0$ m | Relative $L_2$ error | $2.0 \times 10^{-16}$ | Pass |
+| Airy first dark ring | Circular, $z = 0.50$ m | Radius discrepancy | 0.61% | Pass |
+| Airy radial profile | Circular, $z = 0.50$ m | Profile $L_2$ error | 1.62% | Pass |
+| Sinc cross-section ($x$) | Rectangular, $z = 0.50$ m | Slice $L_2$ error | 1.65% | Pass |
+| Sinc cross-section ($y$) | Rectangular, $z = 0.50$ m | Slice $L_2$ error | 2.64% | Pass |
+| Rayleigh-Sommerfeld direct | Circular, $z = 0.005$ m | Near-field $L_2$ error | 3.89% | Pass |
+| Power conservation | Circular, $z = 0.01$ m | Energy discrepancy | $< 0.03\%$ | Pass |
 
-### Far-field aliasing ($z = 0.80$ m)
+Sampling convergence at $z = 0.50$ m (fixed window $S = 2.56$ mm):
 
-At $z = 0.80$ m ($N = 512$, $\Delta x = 5\,\mu$m), standard ASM suffers severe high-frequency phase aliasing across the observation plane:
+| Grid Points $N$ | Pitch $\Delta x$ | Fresnel Error | Standard ASM Error | BL-ASM Error |
+| :--- | :--- | :--- | :--- | :--- |
+| 256 | $10.0\,\mu$m | 6.61% | 6.79% | 2.95% |
+| 512 | $5.0\,\mu$m | 7.33% | 7.11% | 1.87% |
+| 1024 | $2.5\,\mu$m | 6.84% | 6.79% | 1.40% |
 
-| Method | Relative Intensity Error ($L_2$) | Spectral Fraction Retained | Notes |
-| :--- | :--- | :--- | :--- |
-| Fresnel | 15.28% | 100% | Suffers from paraxial curvature error |
-| Standard ASM | 15.34% | 100% | Severe moire fringe aliasing |
-| **BL-ASM** | **2.78%** | **0.35%** | **5.5x error reduction, alias-free** |
+Under a fixed field of view, standard ASM and Fresnel saturate around 6.8% error because grid refinement cannot eliminate the transfer function phase chirp. BL-ASM error drops monotonically to 1.40% as grid resolution increases.
 
-### Sampling convergence vs window clipping ($z = 0.50$ m)
-
-Increasing grid points $N$ under a fixed observation window ($S = 2.56$ mm) steadily reduces BL-ASM error from 2.95% ($N=256$) to 1.87% ($N=512$) and 1.40% ($N=1024$). Standard ASM and Fresnel remain stuck at ~6.8% because grid refinement alone cannot eliminate the frequency chirp mismatch.
-
-Conversely, with fixed sampling pitch ($\Delta x = 5\,\mu$m), a small grid ($N=256$, $S=1.28$ mm) truncates the outer diffraction rings, producing 5.15% error for BL-ASM and >22% for ASM/Fresnel. Expanding the physical window to $S = 5.12$ mm ($N=1024$) captures these rings, bringing BL-ASM error down to 1.62%.
-
-Computational cost for BL-ASM adds a negligible step (evaluating the coordinate mask), requiring ~1.51 s vs ~1.41 s for standard ASM at $N=1024$ (approx. 7.1% overhead).
-
-## What I learned
-
-1. **Standard ASM is exact in continuous theory, but fragile in discrete implementation.** Beyond the critical sampling distance $z_c = S \Delta x / \lambda$, the transfer function phase oscillates faster than the discrete grid, generating false interference fringes.
-2. **Band-limiting acts as a smart low-pass filter.** By removing frequencies that cannot be sampled without aliasing, BL-ASM discards invalid numerical noise while keeping the true physical diffraction envelope.
-3. **Resolution cannot substitute for window size.** If the physical window $S$ is too narrow, the outer diffracted sidelobes clip at the borders regardless of how finely the aperture is sampled.
-
-## Reproduce it
+## Reproduce
 
 Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Run test suite:
-
-```bash
-pytest -v
-```
-
-Run full experiment suite and regenerate all figures:
-
-```bash
-python reproduce.py
-```
-
-For quick verification:
+Run fast verification:
 
 ```bash
 python reproduce.py --quick
 ```
 
+Run full experiment suite:
+
+```bash
+python reproduce.py
+```
+
+Run test suite:
+
+```bash
+python -m pytest -q
+```
+
 ## References
 
-- K. Matsushima and T. Shimobaba, "Band-limited angular spectrum method for numerical simulation of free-space propagation in far and near fields," *Optics Express* 17(22), 19662 (2009).
-- J. W. Goodman, *Introduction to Fourier Optics*, 4th ed., W. H. Freeman (2017).
+- K. Matsushima and T. Shimobaba, "Band-limited angular spectrum method for numerical simulation of free-space propagation in far and near fields," *Optics Express* 17(22), 19662-19673 (2009). https://doi.org/10.1364/OE.17.019662
+- waveprop: https://github.com/ebezzam/waveprop
+- SciencePlots: https://github.com/garrettj403/SciencePlots

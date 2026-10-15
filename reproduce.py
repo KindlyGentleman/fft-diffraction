@@ -1,4 +1,4 @@
-"""Reproduction CLI runner for FFT diffraction experiments.
+"""Reproduction CLI runner for FFT scalar diffraction experiments.
 
 Runs validation tests, generates metrics tables, and renders publication assets.
 """
@@ -28,7 +28,13 @@ from diffraction import (
     radial_profile,
     find_first_radial_minimum,
 )
-from visualize import generate_composite_figure, generate_loop_gif
+from visualize import (
+    generate_fig01_aperture_diffraction,
+    generate_fig02_methods_errors,
+    generate_fig03_results_profiles,
+    generate_primary_loop_gif,
+    generate_error_loop_gif,
+)
 
 
 def run_validations(quick: bool = False) -> Dict[str, Any]:
@@ -161,7 +167,8 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
             t_elapsed = time.perf_counter() - t0
 
             i_out = np.abs(u_out)**2
-            err = relative_l2_error(i_out / np.max(i_out), i_ref / np.max(i_ref))
+            err_raw = relative_l2_error(i_out, i_ref)
+            err_peak = relative_l2_error(i_out / np.max(i_out), i_ref / np.max(i_ref))
 
             metrics_rows.append({
                 "experiment": "fixed_fov",
@@ -171,7 +178,8 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
                 "z_m": z_eval,
                 "method": method,
                 "runtime_s": round(t_elapsed, 4),
-                "relative_error_pct": round(err * 100.0, 3),
+                "relative_error_raw_pct": round(err_raw * 100.0, 3),
+                "relative_error_peak_pct": round(err_peak * 100.0, 3),
             })
 
     # Far-field aliasing comparison at z = 0.80 m
@@ -192,7 +200,8 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
         t_elapsed = time.perf_counter() - t0
 
         i_out = np.abs(u_out)**2
-        err = relative_l2_error(i_out / np.max(i_out), i_ref_ff / np.max(i_ref_ff))
+        err_raw = relative_l2_error(i_out, i_ref_ff)
+        err_peak = relative_l2_error(i_out / np.max(i_out), i_ref_ff / np.max(i_ref_ff))
 
         metrics_rows.append({
             "experiment": "far_field_aliasing",
@@ -202,7 +211,8 @@ def run_benchmark_metrics() -> List[Dict[str, Any]]:
             "z_m": 0.80,
             "method": method,
             "runtime_s": round(t_elapsed, 4),
-            "relative_error_pct": round(err * 100.0, 3),
+            "relative_error_raw_pct": round(err_raw * 100.0, 3),
+            "relative_error_peak_pct": round(err_peak * 100.0, 3),
         })
 
     return metrics_rows
@@ -225,20 +235,26 @@ def save_results(validations: Dict[str, Any], metrics: List[Dict[str, Any]]) -> 
 def main():
     parser = argparse.ArgumentParser(description="Reproduce scalar diffraction experiments.")
     parser.add_argument("--quick", action="store_true", help="Run fast verification with smaller grids.")
-    parser.add_argument("--figure-only", action="store_true", help="Only generate publication composite figure.")
-    parser.add_argument("--gif-only", action="store_true", help="Only generate animated loop GIF.")
+    parser.add_argument("--figure-only", action="store_true", help="Only generate publication figures 1-3.")
+    parser.add_argument("--gif-only", action="store_true", help="Only generate animated loop GIFs.")
+    parser.add_argument("--all", action="store_true", help="Run validation, benchmarks, and all figures and GIFs.")
     args = parser.parse_args()
 
     if args.figure_only:
-        print("Generating 3x3 publication figure...")
-        generate_composite_figure()
-        print("Figure saved to assets/diffraction_figure.png and assets/diffraction_figure.pdf")
+        print("Generating Figures 1, 2, and 3...")
+        generate_fig01_aperture_diffraction()
+        generate_fig02_methods_errors()
+        generate_fig03_results_profiles()
+        print("Figures saved in assets/")
         return
 
     if args.gif_only:
-        print("Generating diffraction loop GIF...")
-        generate_loop_gif()
-        print("GIF saved to assets/diffraction_loop.gif")
+        print("Generating primary diffraction loop GIF...")
+        n1 = generate_primary_loop_gif()
+        print(f"Primary GIF saved to assets/diffraction_loop.gif ({n1} frames).")
+        print("Generating error evolution loop GIF...")
+        n2 = generate_error_loop_gif()
+        print(f"Error GIF saved to assets/error_loop.gif ({n2} frames).")
         return
 
     print("Running physical validation tests...")
@@ -252,9 +268,16 @@ def main():
     save_results(validations, metrics)
     print("Metrics written to results/metrics.csv and results/validation.json")
 
-    print("Rendering composite figure and animated loop GIF...")
-    generate_composite_figure()
-    generate_loop_gif()
+    print("Rendering Figures 1, 2, and 3...")
+    generate_fig01_aperture_diffraction()
+    generate_fig02_methods_errors()
+    generate_fig03_results_profiles()
+
+    print("Rendering animated GIFs...")
+    n1 = generate_primary_loop_gif()
+    print(f"Primary GIF saved ({n1} frames).")
+    n2 = generate_error_loop_gif()
+    print(f"Error GIF saved ({n2} frames).")
     print("All artifacts generated successfully.")
 
 
