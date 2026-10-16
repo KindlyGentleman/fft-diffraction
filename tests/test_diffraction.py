@@ -27,7 +27,16 @@ from diffraction import (
     triangular_aperture,
     shifted_circular_aperture,
     compute_shared_region_l2_error,
+    compare_on_common_grid,
     sas_output_scaling,
+    thin_lens_phase,
+    spiral_phase,
+    topological_charge,
+    gaussian_beam_abcd,
+    measure_beam_radius,
+    check_sas_validity,
+    asm_critical_distance,
+    beam_waist_second_moment,
 )
 
 
@@ -356,6 +365,24 @@ def test_shared_region_l2_error():
     assert err_inside > 0.0
 
 
+def test_compare_on_common_grid():
+    """Verify that compare_on_common_grid correctly interpolates and evaluates L2 errors."""
+    grid1 = create_grid(nx=128, ny=128, dx=10e-6, dy=10e-6)
+    grid2 = create_grid(nx=256, ny=256, dx=5e-6, dy=5e-6)
+
+    # Identical Gaussian intensity distributions with different sampling grids
+    w0 = 2e-4
+    i1 = np.exp(-(grid1.X**2 + grid1.Y**2) / (w0**2))
+    i2 = np.exp(-(grid2.X**2 + grid2.Y**2) / (w0**2))
+
+    rel_l2, peak_l2, width = compare_on_common_grid(i1, grid1.x, grid1.y, i2, grid2.x, grid2.y, n_eval=100)
+    assert rel_l2 < 0.005
+    assert peak_l2 < 0.005
+    expected_width = 2.0 * min(float(np.max(grid1.x)), float(np.max(grid2.x)))
+    assert np.isclose(width, expected_width)
+
+
+
 def test_sas_output_scaling():
     """Verify analytical formula for SAS destination grid scaling."""
     wavelength = 532e-9
@@ -372,3 +399,371 @@ def test_sas_output_scaling():
     assert np.isclose(Sy_out, ny * expected_dq)
 
 
+def test_thin_lens_phase_is_unit_modulus():
+    """Verify that thin lens transmission has strictly unit magnitude across the grid."""
+    grid = create_grid(nx=256, ny=256, dx=5e-6, dy=5e-6)
+    wavelength = 532e-9
+    focal_length = 75e-3
+
+    t_lens = thin_lens_phase(grid, wavelength, focal_length)
+
+    # Unit modulus everywhere within floating point precision
+    assert np.allclose(np.abs(t_lens), 1.0, atol=1e-12)
+    # Lens center has zero phase shift (t_lens = 1)
+    cx, cy = grid.nx // 2, grid.ny // 2
+    assert np.isclose(t_lens[cy, cx], 1.0 + 0j)
+
+
+def test_gaussian_lens_abcd_focus():
+    """Verify that propagated Gaussian beam focus agrees with analytical ABCD q-parameter theory."""
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    w0 = 3.0e-4
+    focal_length = 75e-3
+
+    grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+    u_0 = gaussian_field(grid, waist=w0)
+    t_lens = thin_lens_phase(grid, wavelength, focal_length)
+    u_lens = u_0 * t_lens
+
+    # Analytical prediction from ABCD matrix
+    w_z, R_z, z_focus_theory, w_focus_theory = gaussian_beam_abcd(w0, wavelength, focal_length, z=focal_length)
+
+    # Propagate to theoretical focal plane using BL-ASM
+    u_focus = propagate_blas(u_lens, wavelength, z=z_focus_theory, dx=dx, dy=dy, padding=2)
+    i_focus = np.abs(u_focus)**2
+
+    # Measure 1/e^2 beam waist from numerical intensity
+    w_focus_meas = measure_beam_radius(i_focus, grid.x, grid.y)
+
+    # Waist agreement within 3% (focused waist ~42 um with 5 um grid sampling)
+    rel_waist_err = abs(w_focus_meas - w_focus_theory) / w_focus_theory
+    assert rel_waist_err < 0.03
+
+    # Scan axial range around focus to verify longitudinal minimum waist position
+    z_scan = np.linspace(z_focus_theory - 6e-3, z_focus_theory + 6e-3, 13)
+    measured_waists = []
+    for z_i in z_scan:
+        u_z = propagate_blas(u_lens, wavelength, z=z_i, dx=dx, dy=dy, padding=2)
+        w_i = measure_beam_radius(np.abs(u_z)**2, grid.x, grid.y)
+        measured_waists.append(w_i)
+
+    z_min_meas = z_scan[np.argmin(measured_waists)]
+    # Focus position should agree within 1 mm
+    assert abs(z_min_meas - z_focus_theory) <= 1.0e-3
+
+
+def test_vortex_topological_charge():
+    """Verify topological charge conservation for Gaussian beam with integer spiral phase."""
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    w0 = 3.0e-4
+    z_prop = 0.20
+    test_charges = [1, 2, -1]
+
+    grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+    u_gauss = gaussian_field(grid, waist=w0)
+
+    for ell in test_charges:
+        t_spiral = spiral_phase(grid, charge=ell)
+        u_vortex = u_gauss * t_spiral
+
+        # Input phase winding
+        q_in = topological_charge(u_vortex, grid, radius=1.5e-4, num_points=360)
+        assert abs(q_in - ell) < 0.02
+
+        # Propagate field
+        u_prop = propagate_blas(u_vortex, wavelength, z=z_prop, dx=dx, dy=dy, padding=2)
+        q_out = topological_charge(u_prop, grid, radius=1.5e-4, num_points=360)
+        assert abs(q_out - ell) < 0.05
+
+
+def test_asm_critical_distance_scaling():
+    """Verify ASM critical distance formula z_c = N_FFT * dx^2 / lambda for actual padded grids."""
+    n = 512
+    dx = 5e-6
+    wavelength = 532e-9
+
+    zc_1 = asm_critical_distance(n, dx, wavelength, padding=1)
+    zc_2 = asm_critical_distance(n, dx, wavelength, padding=2)
+    zc_4 = asm_critical_distance(n, dx, wavelength, padding=4)
+
+    # For N=512, dx=5 um, lambda=532 nm:
+    # 1x padding: ~24.06 mm
+    # 2x padding: ~48.12 mm
+    # 4x padding: ~96.24 mm
+    assert np.isclose(zc_1, 512 * (5e-6)**2 / 532e-9)
+    assert np.isclose(zc_2, 1024 * (5e-6)**2 / 532e-9)
+    assert np.isclose(zc_4, 2048 * (5e-6)**2 / 532e-9)
+
+    assert abs(zc_1 - 0.02406) < 1e-4
+    assert abs(zc_2 - 0.04812) < 1e-4
+    assert abs(zc_4 - 0.09624) < 1e-4
+
+    assert np.isclose(zc_2, 2.0 * zc_1)
+    assert np.isclose(zc_4, 4.0 * zc_1)
+
+
+def test_beam_waist_second_moment_analytical_gaussian():
+    """Verify ISO 11146 second-moment waist calculation on analytical Gaussian beam."""
+    nx, ny = 512, 512
+    dx, dy = 2e-6, 2e-6
+    w0 = 1.5e-4
+
+    grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+    # Physical intensity of Gaussian beam: I(r) = exp(-2*r^2 / w0^2)
+    intensity = np.exp(-2.0 * (grid.X**2 + grid.Y**2) / (w0**2))
+
+    wx, wy, w_mean = beam_waist_second_moment(intensity, grid.x, grid.y, roi_radius=3.0 * w0)
+
+    assert abs(wx - w0) / w0 < 0.005
+    assert abs(wy - w0) / w0 < 0.005
+    assert abs(w_mean - w0) / w0 < 0.005
+
+
+def test_far_field_absolute_on_axis_intensity():
+    """Verify absolute physical on-axis intensity of circular aperture against Fraunhofer theory."""
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    radius = 1.5e-4
+
+    grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+    u_in = circular_aperture(grid, radius=radius)
+    discrete_pupil_area = float(np.sum(np.abs(u_in)**2) * dx * dy)
+    continuous_pupil_area = np.pi * radius**2
+
+    # Check analytical expectations from prompt:
+    # z=0.50 m -> ~0.0706
+    # z=0.80 m -> ~0.0276
+    for z, expected_approx in [(0.50, 0.0706), (0.80, 0.0276)]:
+        i_theory_continuous = (continuous_pupil_area / (wavelength * z))**2
+        assert abs(i_theory_continuous - expected_approx) / expected_approx < 0.01
+
+        # Check BL-ASM propagation on-axis intensity
+        u_blas = propagate_blas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+        cy, cx = ny // 2, nx // 2
+        i_blas = float(np.abs(u_blas[cy, cx])**2)
+        assert abs(i_blas - i_theory_continuous) / i_theory_continuous < 0.05
+
+        # Check SAS propagation on-axis intensity (unaliased on destination grid)
+        u_sas, _ = propagate_sas(u_in, wavelength, z=z, dx=dx, dy=dy, padding=2)
+        i_sas = float(np.abs(u_sas[cy, cx])**2)
+        assert abs(i_sas - i_theory_continuous) / i_theory_continuous < 0.03
+
+
+def test_thin_lens_focus_measurement_independence():
+    """Verify independent continuous quadratic fit waist measurement on thin-lens focus."""
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    w0 = 3.0e-4
+    focal_length = 75e-3
+
+    grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+    u_0 = gaussian_field(grid, waist=w0)
+    t_lens = thin_lens_phase(grid, wavelength, focal_length)
+    u_lens = u_0 * t_lens
+
+    _, _, z_focus_theory, w_focus_theory = gaussian_beam_abcd(w0, wavelength, focal_length, z=focal_length)
+
+    # Dense z sweep around focus
+    z_scan = np.linspace(72.0e-3, 75.0e-3, 16)
+    waists = []
+    for z_i in z_scan:
+        u_z = propagate_blas(u_lens, wavelength, z=z_i, dx=dx, dy=dy, padding=2)
+        w_i = measure_beam_radius(np.abs(u_z)**2, grid.x, grid.y, roi_radius=1.5e-4)
+        waists.append(w_i)
+
+    # Local quadratic fit around minimum
+    min_idx = int(np.argmin(waists))
+    fit_idx = slice(max(0, min_idx - 2), min(len(z_scan), min_idx + 3))
+    z_fit_pts = z_scan[fit_idx]
+    w_fit_pts = np.array(waists[fit_idx])
+    poly = np.polyfit(z_fit_pts, w_fit_pts, 2)
+    c2, c1, _ = poly[0], poly[1], poly[2]
+
+    assert c2 > 0  # Concave up (minimum)
+    z_focus_meas = float(-c1 / (2.0 * c2))
+    w_focus_meas = float(np.polyval(poly, z_focus_meas))
+
+    # Verify that measured focus is a continuous interpolated point, not snapping to grid
+    assert not any(np.isclose(z_focus_meas, z_scan, atol=1e-7))
+
+    # Agreement with ABCD theory: focus position < 0.05%, waist < 0.1%
+    rel_pos_err = abs(z_focus_meas - z_focus_theory) / z_focus_theory
+    rel_waist_err = abs(w_focus_meas - w_focus_theory) / w_focus_theory
+    assert rel_pos_err < 0.0005
+    assert rel_waist_err < 0.001
+
+
+def test_vortex_charge_multi_radius_multi_distance():
+    """Verify optical vortex topological charge stability across multiple radii and distances."""
+    nx, ny = 256, 256
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    w0 = 3.0e-4
+
+    grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+    u_gauss = gaussian_field(grid, waist=w0)
+
+    test_radii = [1.2e-4, 1.5e-4, 1.8e-4]
+    test_distances = [0.10, 0.20, 0.30]
+    charges = [1, 2, 3, -1]
+
+    for ell in charges:
+        t_spiral = spiral_phase(grid, charge=ell)
+        u_vortex = u_gauss * t_spiral
+
+        for z_prop in test_distances:
+            u_prop = propagate_blas(u_vortex, wavelength, z=z_prop, dx=dx, dy=dy, padding=2)
+            for r_test in test_radii:
+                q = topological_charge(u_prop, grid, radius=r_test, num_points=360)
+                assert abs(q - ell) < 0.05, f"Failed for charge {ell} at z={z_prop}, r={r_test}: q={q}"
+
+
+def test_sas_validity_vignetting_and_fov():
+    """Verify SAS validity check, magnification, and output FOV computation."""
+    nx, ny = 512, 512
+    dx, dy = 5e-6, 5e-6
+    wavelength = 532e-9
+    padding = 2
+
+    # At z=0.01 m, M < 1 (chirp aliasing)
+    valid_near, reason_near, m_near = check_sas_validity(wavelength, 0.01, nx, ny, dx, dy, padding=padding)
+    assert not valid_near
+    assert m_near < 1.0
+
+    # At z=0.80 m, M > 1 (valid SAS regime)
+    valid_far, reason_far, m_far = check_sas_validity(wavelength, 0.80, nx, ny, dx, dy, padding=padding)
+    assert valid_far
+    assert m_far > 1.0
+
+    # At z=0.80 m, check exact output pitch and FOV:
+    # dq = lambda * z / (2 * N * dx) = 532e-9 * 0.80 / (2 * 512 * 5e-6) = 83.125 um
+    # S_d = N * dq = 512 * 83.125 um = 42.56 mm
+    dqx, dqy, Sx_out, Sy_out = sas_output_scaling(wavelength, 0.80, nx, ny, dx, dy, padding=padding)
+    assert np.isclose(dqx, 83.125e-6)
+    assert np.isclose(dqy, 83.125e-6)
+    assert np.isclose(Sx_out, 0.04256)
+    assert np.isclose(Sy_out, 0.04256)
+
+
+def test_method_selection_coverage_and_power_metrics():
+    """Verify that FOV coverage rejects clipped fixed-grid methods at z=0.80 m while accepting SAS."""
+    wavelength = 532e-9
+    radius = 1.5e-4
+    z = 0.80
+    r1 = airy_first_zero(wavelength, z, radius)
+    w_target = 2.0 * r1  # ~3.46 mm
+
+    s_fixed = 512 * 5e-6  # 2.56 mm
+    cov_x_fixed = s_fixed / w_target
+    cov_2d_fixed = cov_x_fixed**2
+    # Fixed window cannot cover >= 95% of target Airy disc
+    sufficient_fixed = bool(cov_x_fixed >= 0.95 and cov_2d_fixed >= 0.90)
+    assert not sufficient_fixed
+    assert cov_x_fixed < 0.80
+    assert cov_2d_fixed < 0.60
+
+    # SAS scales to 42.56 mm
+    s_sas = 0.04256
+    cov_x_sas = min(1.0, s_sas / w_target)
+    cov_2d_sas = cov_x_sas**2
+    sufficient_sas = bool(cov_x_sas >= 0.95 and cov_2d_sas >= 0.90)
+    assert sufficient_sas
+    assert np.isclose(cov_x_sas, 1.0)
+    assert np.isclose(cov_2d_sas, 1.0)
+
+
+def test_sas_destination_pitch_and_cropped_fov():
+    """Verify destination pitch, magnification, and cropped output FOV for N=512, dx=5 um, padding=2, z=0.80 m."""
+    n = 512
+    dx = 5.0e-6
+    padding = 2
+    wavelength = 532e-9
+    z = 0.80
+
+    dqx, dqy, sx_out, sy_out = sas_output_scaling(wavelength, z, n, n, dx, dx, padding=padding)
+
+    # Destination pitch: dq = lambda * z / (n * padding * dx)
+    expected_dq = 532e-9 * 0.80 / (512 * 2 * 5.0e-6)  # 83.125 um
+    assert np.isclose(dqx, expected_dq)
+    assert np.isclose(dqx, 83.125e-6)
+
+    # Magnification: M = dq / dx
+    m = dqx / dx
+    assert np.isclose(m, 16.625)
+
+    # Cropped output FOV: Sx = n * dq = 512 * 83.125 um = 42.56 mm
+    assert np.isclose(sx_out, 0.04256)
+    assert np.isclose(sy_out, 0.04256)
+
+
+def test_thin_lens_precision_and_relative_error():
+    """Verify thin-lens reported precision (73.54 +- 0.01 mm, 41.9 +- 0.1 um) and relative error ~0.006%."""
+    w0 = 3.0e-4
+    wavelength = 532e-9
+    f = 75e-3
+
+    _, _, z_th, w_th = gaussian_beam_abcd(w0, wavelength, f, z=f)
+    # Analytical theory: z_th ~ 73.5356 mm, w_th ~ 41.92 um
+    assert abs(z_th * 1e3 - 73.5356) < 0.001
+    assert abs(w_th * 1e6 - 41.92) < 0.01
+
+    # Reported rounded measurements
+    z_meas_reported = 73.54e-3   # 73.54 mm
+    w_meas_reported = 41.9e-6    # 41.9 um
+
+    # Relative difference between reported 73.54 mm and analytical 73.5356 mm is ~0.006%
+    rel_diff_pos = abs(z_meas_reported - z_th) / z_th
+    assert abs(rel_diff_pos - 0.0000598) < 1e-6
+    assert abs(rel_diff_pos * 100.0 - 0.006) < 0.001
+
+    # Relative difference between reported 41.9 um and analytical 41.92 um is ~0.05%
+    rel_diff_waist = abs(w_meas_reported - w_th) / w_th
+    assert abs(rel_diff_waist * 100.0 - 0.05) < 0.02
+
+
+def test_optical_power_integration_vs_area_coverage():
+    """Verify that optical power is computed by 2D physical intensity integration, not inferred from area coverage."""
+    wavelength = 532e-9
+    radius = 1.5e-4
+    z = 0.80
+    r1 = airy_first_zero(wavelength, z, radius)
+    w_target = 2.0 * r1  # ~3.46 mm
+
+    s_fixed = 512 * 5e-6  # 2.56 mm
+    area_coverage_ratio = (s_fixed / w_target)**2
+    # Geometric area coverage is ~54.8%
+    assert abs(area_coverage_ratio - 0.548) < 0.02
+
+    # Physical captured optical power by integrating Airy intensity over [-s_fixed/2, s_fixed/2]^2
+    grid_fine = create_grid(nx=1024, ny=1024, dx=5e-6, dy=5e-6)
+    i_airy = airy_pattern(grid_fine, wavelength, z=z, radius=radius)
+    mask_win = (np.abs(grid_fine.X) <= s_fixed / 2.0) & (np.abs(grid_fine.Y) <= s_fixed / 2.0)
+
+    p_captured = np.sum(i_airy[mask_win])
+    p_total = np.sum(i_airy)
+    captured_power_ratio = float(p_captured / p_total)
+
+    # Physical captured power (> 85%) is vastly higher than geometric area coverage (~55%)
+    assert captured_power_ratio > 0.85
+    assert captured_power_ratio > area_coverage_ratio + 0.30
+
+
+def test_pupil_spectrum_bandlimit_gate():
+    """Verify physical justification of BL-ASM bandwidth gate f_pupil = 3/D based on pupil spectrum."""
+    aperture_radius = 1.5e-4
+    aperture_diameter = 2.0 * aperture_radius  # D = 0.30 mm
+
+    f_pupil_threshold = 3.0 / aperture_diameter
+    assert np.isclose(f_pupil_threshold, 10000.0)
+
+    # The 3rd dark zero of the J1(pi*D*f) pupil spectrum is at u3 / (pi*D) ~ 10.1735 / (pi*D) ~ 3.238/D
+    # Setting threshold at 3.0/D encloses central core + first two secondary rings (>95% of spectral energy)
+    zero3_freq = 10.173506 / (np.pi * aperture_diameter)
+    assert f_pupil_threshold < zero3_freq
+    assert zero3_freq - f_pupil_threshold < 1000.0

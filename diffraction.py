@@ -235,7 +235,7 @@ def propagate_sas(
     dq = lambda * z / (N * padding * dx) using three successive FFT operations.
 
     Reference: Heintzmann, Loetgering, & Wechsler, Optica 10(11), 1407-1416 (2023).
-    DOI: 10.1364/OPTICA.499636
+    DOI: 10.1364/OPTICA.497809
     """
     if field.ndim != 2:
         raise ValueError("Field array must be 2D.")
@@ -534,6 +534,61 @@ def compute_shared_region_l2_error(
     return relative_l2_error(test_sub, ref_sub)
 
 
+def compare_on_common_grid(
+    u_test: np.ndarray,
+    x_test: np.ndarray,
+    y_test: np.ndarray,
+    i_ref: np.ndarray,
+    x_ref: np.ndarray,
+    y_ref: np.ndarray,
+    n_eval: int = 160,
+) -> Tuple[float, float, float]:
+    """Interpolate test and reference intensities onto a neutral common physical grid and calculate L2 errors.
+
+    Determines Omega_common = Omega_test intersect Omega_ref, creates a neutral evaluation grid,
+    and returns (relative_l2_error, peak_normalized_l2_error, common_width).
+    """
+    from scipy.interpolate import RegularGridInterpolator
+
+    w_x = min(float(np.max(x_test)), float(np.max(x_ref)))
+    w_y = min(float(np.max(y_test)), float(np.max(y_ref)))
+    if w_x <= 0 or w_y <= 0:
+        return float("nan"), float("nan"), 0.0
+
+    x_eval = np.linspace(-w_x, w_x, n_eval)
+    y_eval = np.linspace(-w_y, w_y, n_eval)
+    pts_y, pts_x = np.meshgrid(y_eval, x_eval, indexing="ij")
+    eval_pts = np.column_stack([pts_y.ravel(), pts_x.ravel()])
+
+    i_test = np.abs(u_test)**2 if np.iscomplexobj(u_test) else np.asarray(u_test, dtype=np.float64)
+    i_ref_real = np.abs(i_ref)**2 if np.iscomplexobj(i_ref) else np.asarray(i_ref, dtype=np.float64)
+
+    interp_test = RegularGridInterpolator((y_test, x_test), i_test, bounds_error=False, fill_value=0.0)
+    interp_ref = RegularGridInterpolator((y_ref, x_ref), i_ref_real, bounds_error=False, fill_value=0.0)
+
+    i_test_eval = interp_test(eval_pts).reshape((n_eval, n_eval))
+    i_ref_eval = interp_ref(eval_pts).reshape((n_eval, n_eval))
+
+    norm_ref = np.linalg.norm(i_ref_eval)
+    if norm_ref == 0.0:
+        rel_l2 = float("nan")
+    else:
+        rel_l2 = float(np.linalg.norm(i_test_eval - i_ref_eval) / norm_ref)
+
+    max_t = float(np.max(i_test_eval))
+    max_r = float(np.max(i_ref_eval))
+    if max_t > 0 and max_r > 0:
+        p_t = i_test_eval / max_t
+        p_r = i_ref_eval / max_r
+        norm_pr = np.linalg.norm(p_r)
+        peak_l2 = float(np.linalg.norm(p_t - p_r) / norm_pr) if norm_pr > 0 else float("nan")
+    else:
+        peak_l2 = float("nan")
+
+    return rel_l2, peak_l2, float(2.0 * w_x)
+
+
+
 def sas_output_scaling(
     wavelength: float,
     z: float,
@@ -543,7 +598,15 @@ def sas_output_scaling(
     dy: float,
     padding: int = 2,
 ) -> Tuple[float, float, float, float]:
-    """Calculate Scalable Angular Spectrum output pixel pitch and field of view.
+    """Calculate Scalable Angular Spectrum output pixel pitch and cropped field of view.
+
+    The destination sampling pitch dqx, dqy is determined by the actual padded FFT
+    dimension (nx * padding, ny * padding):
+        dq = lambda * z / (N * padding * dx)
+    The cropped output field of view corresponds to the cropped nx x ny grid:
+        Sx_out = nx * dqx,  Sy_out = ny * dqy
+    For N=512, dx=5 um, padding=2, lambda=532 nm, and z=0.80 m, this yields:
+        dq = 83.125 um and Sx_out = 42.56 mm (magnification M = 16.625).
 
     Returns:
         (dqx, dqy, Sx_out, Sy_out) in meters.
@@ -557,3 +620,228 @@ def sas_output_scaling(
     return dqx, dqy, Sx_out, Sy_out
 
 
+def thin_lens_phase(grid: Grid, wavelength: float, focal_length: float) -> np.ndarray:
+    """Calculate the complex transmission function of an ideal thin lens.
+
+    t_lens(x, y) = exp(-i * pi * (x^2 + y^2) / (lambda * f))
+
+    Parameters:
+        grid: Spatial grid representation.
+        wavelength: Light wavelength in meters.
+        focal_length: Focal length in meters (positive for converging lens).
+    """
+    if focal_length == 0.0:
+        raise ValueError("Focal length must be non-zero.")
+    k = 2.0 * np.pi / wavelength
+    r_sq = grid.X**2 + grid.Y**2
+    return np.exp(-1j * (k / (2.0 * focal_length)) * r_sq).astype(np.complex128)
+
+
+def spiral_phase(grid: Grid, charge: int) -> np.ndarray:
+    """Calculate the complex transmission function of an ideal spiral phase mask.
+
+    t_vortex(x, y) = exp(i * ell * phi), where phi = atan2(y, x).
+    For non-zero topological charge, the center singular point is regularized to 0.
+
+    Parameters:
+        grid: Spatial grid representation.
+        charge: Integer topological charge ell.
+    """
+    phi = np.arctan2(grid.Y, grid.X)
+    t = np.exp(1j * charge * phi).astype(np.complex128)
+    if charge != 0:
+        cx, cy = grid.nx // 2, grid.ny // 2
+        t[cy, cx] = 0.0
+    return t
+
+
+def topological_charge(
+    field: np.ndarray,
+    grid: Grid,
+    radius: float = 1.5e-4,
+    num_points: int = 360,
+) -> float:
+    """Estimate the topological charge Q = (1 / 2pi) * oint grad(arg(U)) . dl around a circle.
+
+    Evaluates wrapped phase differences along a closed circular contour of radius R
+    centered at the origin.
+
+    Parameters:
+        field: Complex 2D optical field.
+        grid: Spatial grid representation.
+        radius: Contour radius in meters (chosen in high-intensity region).
+        num_points: Number of angular contour samples.
+    """
+    from scipy.interpolate import RegularGridInterpolator
+
+    theta = np.linspace(0, 2.0 * np.pi, num_points, endpoint=False)
+    x_c = radius * np.cos(theta)
+    y_c = radius * np.sin(theta)
+
+    interp_real = RegularGridInterpolator((grid.y, grid.x), np.real(field), bounds_error=False, fill_value=0.0)
+    interp_imag = RegularGridInterpolator((grid.y, grid.x), np.imag(field), bounds_error=False, fill_value=0.0)
+
+    pts = np.column_stack([y_c, x_c])
+    u_c = interp_real(pts) + 1j * interp_imag(pts)
+
+    phases = np.angle(u_c)
+    phases_closed = np.append(phases, phases[0])
+    phase_diffs = np.arctan2(np.sin(np.diff(phases_closed)), np.cos(np.diff(phases_closed)))
+    total_winding = np.sum(phase_diffs)
+    return float(total_winding / (2.0 * np.pi))
+
+
+def gaussian_beam_abcd(
+    w0: float,
+    wavelength: float,
+    focal_length: float,
+    z: float,
+) -> Tuple[float, float, float, float]:
+    """Calculate Gaussian beam parameters after a thin lens using the ABCD law.
+
+    Assumes input waist w0 is located immediately before the lens plane (z=0).
+
+    Returns:
+        (w_z, R_z, z_focus, w_focus) in meters.
+        w_z: Beam radius at distance z.
+        R_z: Wavefront radius of curvature at distance z.
+        z_focus: Longitudinal distance to the minimum waist.
+        w_focus: Minimum beam radius at the focal waist.
+    """
+    z_R = np.pi * (w0**2) / wavelength
+    q_in = 1j * z_R
+
+    # Thin lens ray matrix: A=1, B=0, C=-1/f, D=1
+    denom = 1.0 - q_in / focal_length
+    q_after = q_in / denom
+
+    # Free space propagation: q(z) = q_after + z
+    q_z = q_after + z
+
+    inv_q_z = 1.0 / q_z
+    inv_R = np.real(inv_q_z)
+    R_z = float("inf") if abs(inv_R) < 1e-15 else float(1.0 / inv_R)
+
+    imag_inv_q = np.imag(inv_q_z)
+    if imag_inv_q >= 0:
+        raise ValueError("Invalid Gaussian beam parameter: imaginary part must be negative.")
+    w_z = float(np.sqrt(-wavelength / (np.pi * imag_inv_q)))
+
+    zr_f_ratio = z_R / focal_length
+    z_focus = float(focal_length / (1.0 + (focal_length / z_R)**2))
+    w_focus = float(w0 / np.sqrt(1.0 + zr_f_ratio**2))
+
+    return w_z, R_z, z_focus, w_focus
+
+
+def asm_critical_distance(
+    n: int,
+    dx: float,
+    wavelength: float,
+    padding: int = 1,
+) -> float:
+    """Calculate the approximate full-bandwidth transfer-function sampling critical distance.
+
+    z_c = N_FFT * dx^2 / lambda, where N_FFT = n * padding.
+    """
+    n_fft = n * padding
+    return float(n_fft * (dx**2) / wavelength)
+
+
+def check_sas_validity(
+    wavelength: float,
+    z: float,
+    nx: int,
+    ny: int,
+    dx: float,
+    dy: float,
+    padding: int = 2,
+) -> Tuple[bool, str, float]:
+    """Check SAS magnification and sampling validity conditions.
+
+    Reference: Heintzmann, Loetgering, and Wechsler, Optica 10(11), 1407-1416 (2023).
+
+    Returns:
+        (is_valid, reason, magnification)
+    """
+    if z <= 0.0:
+        return False, "Singular at z=0 (requires z > 0)", 0.0
+
+    dqx, dqy, _, _ = sas_output_scaling(wavelength, z, nx, ny, dx, dy, padding=padding)
+    m = float(min(dqx / dx, dqy / dy))
+
+    # Condition 1: Destination magnification must exceed unity for SAS advantage
+    # When M <= 1, chirp phase aliases on source grid and destination grid shrinks.
+    if m <= 1.0:
+        return False, f"Chirp aliased / grid shrinks: M={m:.2f} <= 1 (Std/BL-ASM preferred)", m
+
+    # Condition 2: Vignetting distance limit (Heintzmann et al., Eq. 18 / Section F)
+    L = nx * dx
+    term = np.sqrt(L**2 / (8.0 * L**2 + nx**2 * wavelength**2))
+    denom = wavelength * (-1.0 + 2.0 * np.sqrt(2.0) * term)
+    if denom > 0:
+        z_vignette = float(abs(-4.0 * L * np.sqrt(8.0 * L**2 / nx**2 + wavelength**2) * term / denom))
+        if z > z_vignette:
+            return False, f"Vignetting limit exceeded (z > {z_vignette:.1f} m)", m
+
+    return True, f"Valid SAS regime (M={m:.2f} > 1)", m
+
+
+def beam_waist_second_moment(
+    intensity: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    roi_radius: Optional[float] = None,
+) -> Tuple[float, float, float]:
+    """Calculate ISO 11146 second-moment beam radius (D4sigma / 2) with physical pixel-area weighting.
+
+    For a centered Gaussian beam:
+        w_x = 2 * sqrt(<(x - <x>)^2>)
+        w_y = 2 * sqrt(<(y - <y>)^2>)
+    with physical pixel-area weighting dx * dy.
+
+    Parameters:
+        intensity: 2D array of physical optical intensity.
+        x, y: 1D physical coordinate arrays in meters.
+        roi_radius: Optional radius in meters to restrict integration and suppress noise.
+
+    Returns:
+        (w_x, w_y, w_mean) in meters.
+    """
+    dx = float(abs(x[1] - x[0])) if len(x) > 1 else 1.0
+    dy = float(abs(y[1] - y[0])) if len(y) > 1 else 1.0
+    dA = dx * dy
+
+    X, Y = np.meshgrid(x, y)
+    i_sub = np.asarray(intensity, dtype=np.float64).copy()
+
+    if roi_radius is not None and roi_radius > 0:
+        mask = (X**2 + Y**2) <= roi_radius**2
+        i_sub = np.where(mask, i_sub, 0.0)
+
+    total_p = float(np.sum(i_sub) * dA)
+    if total_p <= 1e-15:
+        return 0.0, 0.0, 0.0
+
+    x_mean = float(np.sum(X * i_sub * dA) / total_p)
+    y_mean = float(np.sum(Y * i_sub * dA) / total_p)
+
+    var_x = float(np.sum((X - x_mean)**2 * i_sub * dA) / total_p)
+    var_y = float(np.sum((Y - y_mean)**2 * i_sub * dA) / total_p)
+
+    w_x = 2.0 * np.sqrt(max(0.0, var_x))
+    w_y = 2.0 * np.sqrt(max(0.0, var_y))
+    w_mean = 0.5 * (w_x + w_y)
+
+    return float(w_x), float(w_y), float(w_mean)
+
+
+def measure_beam_radius(
+    intensity: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    roi_radius: Optional[float] = None,
+) -> float:
+    """Measure the second-moment beam radius w from numerical intensity."""
+    _, _, w_mean = beam_waist_second_moment(intensity, x, y, roi_radius=roi_radius)
+    return float(w_mean)

@@ -4,7 +4,8 @@
     "error_asm": 2.0056839351362928e-16,
     "error_blas": 2.0056839351362928e-16,
     "error_fresnel": 2.0056839351362928e-16,
-    "error_sas": 0.0
+    "error_sas": 0.0,
+    "note": "SAS at z=0 is a branch identity return (requires z > 0 for non-singular scaling)"
   },
   "circular_fraunhofer_airy": {
     "passed": true,
@@ -28,5 +29,93 @@
   "near_field_direct_integration": {
     "passed": true,
     "relative_l2_error": 0.038926084659347805
+  },
+  "thin_lens_focus": {
+    "passed": true,
+    "focus_z_theory_m": 0.07353560348058297,
+    "focus_z_measured_m": 0.07354,
+    "focus_z_relative_error": 5.978762951456447e-05,
+    "focus_z_uncertainty_m": 1e-05,
+    "waist_theory_m": 4.1919873846427804e-05,
+    "waist_measured_m": 4.19e-05,
+    "waist_relative_error": 0.00047409127471636706,
+    "waist_uncertainty_m": 1e-07,
+    "beam_radius_l2_error": 1.0827419072145614e-05,
+    "z_step_m": 0.00010000000000000286,
+    "fit_method": "quadratic_interpolation",
+    "precision_note": "Numerical precision: focus position 73.54 +- 0.01 mm, beam waist 41.9 +- 0.1 um from convergence stability"
+  },
+  "optical_vortex": {
+    "passed": true,
+    "charges": [
+      {
+        "charge_requested": 1,
+        "charge_input_measured": 1.0,
+        "charge_output_measured": 1.0,
+        "error_input": 0.0,
+        "error_output": 0.0,
+        "radii_tested_m": [
+          0.00012,
+          0.00015,
+          0.00018
+        ],
+        "distances_tested_m": [
+          0.1,
+          0.2,
+          0.3
+        ]
+      },
+      {
+        "charge_requested": 2,
+        "charge_input_measured": 2.0,
+        "charge_output_measured": 2.0,
+        "error_input": 0.0,
+        "error_output": 0.0,
+        "radii_tested_m": [
+          0.00012,
+          0.00015,
+          0.00018
+        ],
+        "distances_tested_m": [
+          0.1,
+          0.2,
+          0.3
+        ]
+      },
+      {
+        "charge_requested": 3,
+        "charge_input_measured": 3.0,
+        "charge_output_measured": 3.0,
+        "error_input": 0.0,
+        "error_output": 0.0,
+        "radii_tested_m": [
+          0.00012,
+          0.00015,
+          0.00018
+        ],
+        "distances_tested_m": [
+          0.1,
+          0.2,
+          0.3
+        ]
+      },
+      {
+        "charge_requested": -1,
+        "charge_input_measured": -1.0,
+        "charge_output_measured": -1.0,
+        "error_input": 0.0,
+        "error_output": 0.0,
+        "radii_tested_m": [
+          0.00012,
+          0.00015,
+          0.00018
+        ],
+        "distances_tested_m": [
+          0.1,
+          0.2,
+          0.3
+        ]
+      }
+    ]
   }
 }
