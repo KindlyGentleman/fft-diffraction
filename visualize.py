@@ -14,6 +14,8 @@ Generates:
 import os
 from typing import Tuple, List, Optional, Dict, Any
 import numpy as np
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Rectangle
@@ -439,7 +441,10 @@ def generate_fig04_method_selection_map(
     from matplotlib.colors import LogNorm, ListedColormap
     from matplotlib.patches import Patch
 
-    if metrics_data is None and os.path.exists("results/metrics.csv"):
+    if metrics_data is not None:
+        filtered = [r for r in metrics_data if r.get("experiment", "method_selection_map") == "method_selection_map"]
+        metrics_data = filtered if filtered else metrics_data
+    elif os.path.exists("results/metrics.csv"):
         import csv
         with open("results/metrics.csv", "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
@@ -447,9 +452,20 @@ def generate_fig04_method_selection_map(
             if rows:
                 metrics_data = rows
 
-    if metrics_data is None:
+    if metrics_data is None or len(metrics_data) == 0:
         from reproduce import run_method_selection_sweep
         metrics_data = run_method_selection_sweep(quick=quick)
+
+    # Validate uniqueness of (method, dx, z) cells
+    seen_cells = set()
+    deduped_data = []
+    for r in metrics_data:
+        key = (r.get("method"), round(float(r["dx_source_m"]), 10), round(float(r["z_m"]), 8))
+        if key in seen_cells:
+            continue
+        seen_cells.add(key)
+        deduped_data.append(r)
+    metrics_data = deduped_data
 
     z_vals = sorted(list(set(float(r["z_m"]) for r in metrics_data)))
     dx_vals = sorted(list(set(float(r["dx_source_m"]) for r in metrics_data)))
@@ -462,12 +478,10 @@ def generate_fig04_method_selection_map(
 
     methods = ["fresnel", "asm", "blas", "sas"]
     err_maps = {m: np.full((ndx, nz), np.nan) for m in methods}
-    methods = ["fresnel", "asm", "blas", "sas"]
-    err_maps = {m: np.full((ndx, nz), np.nan) for m in methods}
     runtime_maps = {m: np.full((ndx, nz), np.nan) for m in methods}
-    valid_maps = {m: np.full((ndx, nz), True) for m in methods}
-    cov_maps = {m: np.full((ndx, nz), True) for m in methods}
-    ref_conv_map = np.full((ndx, nz), True)
+    valid_maps = {m: np.full((ndx, nz), False) for m in methods}
+    cov_maps = {m: np.full((ndx, nz), False) for m in methods}
+    ref_conv_map = np.full((ndx, nz), False)
     ref_unc_map = np.full((ndx, nz), 0.005)
     mag_map = np.full((ndx, nz), 1.0)
 
@@ -517,11 +531,13 @@ def generate_fig04_method_selection_map(
             else:
                 best_map[idx, iz] = 5
 
+    valid_errs = [e for m in methods for e in err_maps[m].ravel() if np.isfinite(e) and e > 0]
+    vmin_err = max(1e-4, min(valid_errs)) if valid_errs else 0.001
+    norm_err = LogNorm(vmin=vmin_err, vmax=1.0)
+    cmap_err = "viridis"
+
     fig = plt.figure(figsize=(7.16, 5.2), dpi=dpi)
     gs = GridSpec(2, 3, figure=fig, hspace=0.52, wspace=0.32)
-
-    norm_err = LogNorm(vmin=0.005, vmax=1.0)
-    cmap_err = "viridis"
 
     dx_labels_um = [f"{dx * 1e6:.1f}" for dx in dx_vals]
     z_labels = []
@@ -618,7 +634,15 @@ def generate_fig04_method_selection_map(
     )
 
     ax_f = fig.add_subplot(gs[1, 2])
-    mean_runtimes = {m: np.nanmedian(runtime_maps[m], axis=0) * 1e3 for m in methods}
+    mean_runtimes = {}
+    for m in methods:
+        arr = runtime_maps[m]
+        res = np.full(arr.shape[1], np.nan)
+        for col_idx in range(arr.shape[1]):
+            valid_col = arr[~np.isnan(arr[:, col_idx]), col_idx]
+            if len(valid_col) > 0:
+                res[col_idx] = np.median(valid_col) * 1e3
+        mean_runtimes[m] = res
     ax_f.plot(z_vals, mean_runtimes["fresnel"], color=COLORS["fresnel"], lw=1.1, marker=".", ms=4, label="Fresnel")
     ax_f.plot(z_vals, mean_runtimes["asm"], color=COLORS["asm"], lw=1.1, marker="s", ms=3.5, label="Std ASM")
     ax_f.plot(z_vals, mean_runtimes["blas"], color=COLORS["blas"], lw=1.1, marker="^", ms=3.5, label="BL-ASM")
@@ -851,15 +875,22 @@ def generate_fig06_vortex_beam(
     phase_wrapped = np.angle(u_c)
     phase_unwrapped = np.unwrap(phase_wrapped)
 
-    ell_vals = [1, 2, 3]
-    if vortex_data is not None and "charges" in vortex_data:
-        charge_entries = {c["charge_requested"]: c for c in vortex_data["charges"]}
-        q_in_meas = [charge_entries.get(ell, {}).get("charge_input_measured", float(ell)) for ell in ell_vals]
-        q_out_meas = [charge_entries.get(ell, {}).get("charge_output_measured", float(ell)) for ell in ell_vals]
+    if vortex_data is not None and "charges" in vortex_data and vortex_data["charges"]:
+        valid_entries = [
+            c for c in vortex_data["charges"]
+            if "charge_input_measured" in c and "charge_output_measured" in c
+            and np.isfinite(c["charge_input_measured"]) and np.isfinite(c["charge_output_measured"])
+        ]
+        valid_entries.sort(key=lambda c: (abs(c["charge_requested"]), c["charge_requested"]))
+        ell_vals = [c["charge_requested"] for c in valid_entries]
+        q_in_meas = [c["charge_input_measured"] for c in valid_entries]
+        q_out_meas = [c["charge_output_measured"] for c in valid_entries]
     else:
+        eval_charges = [1, 2] if quick else [1, 2, 3, -1]
+        ell_vals = eval_charges
         q_in_meas = []
         q_out_meas = []
-        for ell in ell_vals:
+        for ell in eval_charges:
             t_v = spiral_phase(grid, charge=ell)
             u_v = u_gauss * t_v
             q_in = topological_charge(u_v, grid, radius=r_contour, num_points=360)
@@ -932,22 +963,35 @@ def generate_fig06_vortex_beam(
     ax_e.legend(loc="upper left", fontsize=5.2, framealpha=0.8)
 
     ax_f = fig.add_subplot(gs[1, 2])
-    x_indices = np.arange(len(ell_vals))
-    bar_width = 0.32
-    rects1 = ax_f.bar(x_indices - bar_width / 2, q_in_meas, bar_width, label="Input $Q_{\\mathrm{in}}$", color="#386cb0", alpha=0.85)
-    rects2 = ax_f.bar(x_indices + bar_width / 2, q_out_meas, bar_width, label="Prop. $Q_{\\mathrm{out}}$", color="#1b9e77", alpha=0.85)
+    if len(ell_vals) > 0:
+        x_indices = np.arange(len(ell_vals))
+        bar_width = 0.32
+        rects1 = ax_f.bar(x_indices - bar_width / 2, q_in_meas, bar_width, label="Input $Q_{\\mathrm{in}}$", color="#386cb0", alpha=0.85)
+        rects2 = ax_f.bar(x_indices + bar_width / 2, q_out_meas, bar_width, label="Prop. $Q_{\\mathrm{out}}$", color="#1b9e77", alpha=0.85)
 
-    ax_f.set_xticks(x_indices)
-    ax_f.set_xticklabels([f"$\\ell = {ell}$" for ell in ell_vals], fontsize=6.5)
-    ax_f.set_ylabel("Measured Charge $Q$", fontsize=6.8)
-    ax_f.set_title("(f) Topological Charge Conservation", fontsize=7.5)
-    ax_f.set_ylim(0, 3.8)
-    ax_f.tick_params(labelsize=6)
-    ax_f.legend(loc="upper left", fontsize=5.5, framealpha=0.7)
+        ax_f.set_xticks(x_indices)
+        ax_f.set_xticklabels([f"$\\ell = {ell:+d}$" if ell < 0 else f"$\\ell = {ell}$" for ell in ell_vals], fontsize=6.5)
+        ax_f.set_ylabel("Measured Charge $Q$", fontsize=6.8)
+        ax_f.set_title("(f) Topological Charge Conservation", fontsize=7.5)
 
-    for rect in rects2:
-        h = rect.get_height()
-        ax_f.text(rect.get_x() + rect.get_width() / 2.0, h + 0.08, f"{h:.3f}", ha="center", va="bottom", fontsize=5.5)
+        min_val = min(min(q_in_meas), min(q_out_meas))
+        max_val = max(max(q_in_meas), max(q_out_meas))
+        y_bottom = min(-1.5, min_val - 0.5) if min_val < 0 else 0.0
+        y_top = max(3.8, max_val + 0.8)
+        ax_f.set_ylim(y_bottom, y_top)
+        if min_val < 0:
+            ax_f.axhline(0.0, color="#888888", lw=0.6, ls=":")
+        ax_f.tick_params(labelsize=6)
+        ax_f.legend(loc="upper left", fontsize=5.5, framealpha=0.7)
+
+        for rect in rects2:
+            h = rect.get_height()
+            va_pos = "bottom" if h >= 0 else "top"
+            offset = 0.08 if h >= 0 else -0.08
+            ax_f.text(rect.get_x() + rect.get_width() / 2.0, h + offset, f"{h:+.2f}" if h < 0 else f"{h:.3f}", ha="center", va=va_pos, fontsize=5.5)
+    else:
+        ax_f.text(0.5, 0.5, "No charge measurements available", ha="center", va="center", transform=ax_f.transAxes, fontsize=7.0)
+        ax_f.set_title("(f) Topological Charge Conservation", fontsize=7.5)
 
     fig.suptitle(
         "Phase-Only Optical Vortex: Free-Space Propagation and Topological Charge Conservation",

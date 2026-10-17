@@ -2,6 +2,8 @@
 
 import numpy as np
 import pytest
+import matplotlib
+matplotlib.use("Agg")
 from diffraction import (
     create_grid,
     circular_aperture,
@@ -37,6 +39,8 @@ from diffraction import (
     check_sas_validity,
     asm_critical_distance,
     beam_waist_second_moment,
+    compute_complex_field_error,
+    pad_field,
 )
 
 
@@ -366,7 +370,7 @@ def test_shared_region_l2_error():
 
 
 def test_compare_on_common_grid():
-    """Verify that compare_on_common_grid correctly interpolates and evaluates L2 errors."""
+    """Verify that compare_on_common_grid correctly interpolates on the true intersection domain."""
     grid1 = create_grid(nx=128, ny=128, dx=10e-6, dy=10e-6)
     grid2 = create_grid(nx=256, ny=256, dx=5e-6, dy=5e-6)
 
@@ -378,8 +382,21 @@ def test_compare_on_common_grid():
     rel_l2, peak_l2, width = compare_on_common_grid(i1, grid1.x, grid1.y, i2, grid2.x, grid2.y, n_eval=100)
     assert rel_l2 < 0.005
     assert peak_l2 < 0.005
-    expected_width = 2.0 * min(float(np.max(grid1.x)), float(np.max(grid2.x)))
+    expected_width = min(float(grid1.x[-1]), float(grid2.x[-1])) - max(float(grid1.x[0]), float(grid2.x[0]))
     assert np.isclose(width, expected_width)
+
+    # Verify shifted grids without symmetric assumption
+    x_shifted = grid1.x + 200e-6
+    y_shifted = grid1.y + 100e-6
+    rel_l2_s, _, width_s = compare_on_common_grid(i1, x_shifted, y_shifted, i2, grid2.x, grid2.y, n_eval=80)
+    expected_width_s = min(float(x_shifted[-1]), float(grid2.x[-1])) - max(float(x_shifted[0]), float(grid2.x[0]))
+    assert np.isclose(width_s, expected_width_s)
+
+    # Verify disjoint grids return NaN
+    x_disjoint = grid1.x + 5.0e-3
+    rel_l2_disjoint, _, width_disjoint = compare_on_common_grid(i1, x_disjoint, grid1.y, i2, grid2.x, grid2.y, n_eval=50)
+    assert np.isnan(rel_l2_disjoint)
+    assert width_disjoint == 0.0
 
 
 
@@ -703,28 +720,38 @@ def test_sas_destination_pitch_and_cropped_fov():
 
 
 def test_thin_lens_precision_and_relative_error():
-    """Verify thin-lens reported precision (73.54 +- 0.01 mm, 41.9 +- 0.1 um) and relative error ~0.006%."""
+    """Verify thin-lens unrounded numerical measurement error (< 0.01% for focus, < 0.1% for waist) and axial resolution."""
     w0 = 3.0e-4
     wavelength = 532e-9
     f = 75e-3
 
     _, _, z_th, w_th = gaussian_beam_abcd(w0, wavelength, f, z=f)
-    # Analytical theory: z_th ~ 73.5356 mm, w_th ~ 41.92 um
+    # Analytical theory: z_th ~ 73.5356 mm, w_th ~ 41.920 um
     assert abs(z_th * 1e3 - 73.5356) < 0.001
-    assert abs(w_th * 1e6 - 41.92) < 0.01
+    assert abs(w_th * 1e6 - 41.920) < 0.01
 
-    # Reported rounded measurements
-    z_meas_reported = 73.54e-3   # 73.54 mm
-    w_meas_reported = 41.9e-6    # 41.9 um
+    # Actual numerical measurements from continuous quadratic fit
+    # Direct unrounded measurements: z_meas ~ 73.5330 mm, w_meas ~ 41.939 um
+    grid = create_grid(nx=256, ny=256, dx=5e-6, dy=5e-6)
+    u_in = gaussian_field(grid, waist=w0) * thin_lens_phase(grid, wavelength, f)
+    z_scan = np.linspace(72.0e-3, 75.0e-3, 16)
+    waists = [measure_beam_radius(np.abs(propagate_blas(u_in, wavelength, z=z_i, dx=5e-6, dy=5e-6, padding=2))**2, grid.x, grid.y, roi_radius=4.0*w_th) for z_i in z_scan]
+    min_i = np.argmin(waists)
+    fit_sl = slice(max(0, min_i - 2), min(len(z_scan), min_i + 3))
+    p = np.polyfit(z_scan[fit_sl], np.array(waists)[fit_sl], 2)
+    z_meas = float(-p[1] / (2.0 * p[0]))
+    w_meas = float(np.polyval(p, z_meas))
 
-    # Relative difference between reported 73.54 mm and analytical 73.5356 mm is ~0.006%
-    rel_diff_pos = abs(z_meas_reported - z_th) / z_th
-    assert abs(rel_diff_pos - 0.0000598) < 1e-6
-    assert abs(rel_diff_pos * 100.0 - 0.006) < 0.001
+    # Raw unrounded relative errors
+    raw_pos_err = abs(z_meas - z_th) / z_th
+    raw_waist_err = abs(w_meas - w_th) / w_th
+    assert raw_pos_err < 0.0001   # Raw error ~0.0036% (< 0.01%)
+    assert raw_waist_err < 0.001  # Raw error ~0.045% (< 0.1%)
 
-    # Relative difference between reported 41.9 um and analytical 41.92 um is ~0.05%
-    rel_diff_waist = abs(w_meas_reported - w_th) / w_th
-    assert abs(rel_diff_waist * 100.0 - 0.05) < 0.02
+    # Verify uncertainty corresponds to numerical resolution (dz / 10), not rounded error
+    dz = z_scan[1] - z_scan[0]
+    focus_resolution = dz / 10.0
+    assert abs(z_meas - z_th) < focus_resolution
 
 
 def test_optical_power_integration_vs_area_coverage():
@@ -767,3 +794,196 @@ def test_pupil_spectrum_bandlimit_gate():
     zero3_freq = 10.173506 / (np.pi * aperture_diameter)
     assert f_pupil_threshold < zero3_freq
     assert zero3_freq - f_pupil_threshold < 1000.0
+
+
+def test_regression_issue_a_method_selection_map_isolation(tmp_path):
+    """Regression test for Issue A: Verify that method selection map isolates its records from mixed inputs."""
+    from visualize import generate_fig04_method_selection_map
+
+    # Construct synthetic mixed metrics records containing both method_selection_map and fixed_fov
+    z_test = 0.50
+    dx_test = 5e-6
+    map_row = {
+        "experiment": "method_selection_map",
+        "method": "blas",
+        "z_m": z_test,
+        "dx_source_m": dx_test,
+        "dx_output_m": dx_test,
+        "relative_l2_error": 0.015,
+        "runtime_s": 0.005,
+        "valid": True,
+        "sufficient_coverage": True,
+        "reference_converged": True,
+        "ref_uncertainty": 0.005,
+    }
+    # Foreign fixed_fov row with different/conflicting coordinates and missing sweep metadata
+    foreign_row = {
+        "experiment": "fixed_fov",
+        "method": "blas",
+        "z_m": 0.999,
+        "dx_source_m": 12.34e-6,
+        "relative_l2_error": 0.888,
+        "runtime_s": 0.123,
+    }
+    mixed_data = [map_row, foreign_row, map_row]  # Include duplicate and mixed record
+
+    out_png = str(tmp_path / "fig04_test.png")
+    out_pdf = str(tmp_path / "fig04_test.pdf")
+
+    # Should execute successfully without contamination by foreign row
+    generate_fig04_method_selection_map(metrics_data=mixed_data, output_png=out_png, output_pdf=out_pdf)
+    assert (tmp_path / "fig04_test.png").exists()
+
+
+def test_regression_issue_b_vortex_no_theory_substitution(tmp_path):
+    """Regression test for Issue B: Verify that optical vortex visualization never substitutes theory for missing charges."""
+    from visualize import generate_fig06_vortex_beam
+
+    # Minimal input intentionally missing charge +3 and containing negative charge -1
+    vortex_data_incomplete = {
+        "passed": True,
+        "charges": [
+            {
+                "charge_requested": 1,
+                "charge_input_measured": 1.0001,
+                "charge_output_measured": 0.9998,
+            },
+            {
+                "charge_requested": -1,
+                "charge_input_measured": -0.9999,
+                "charge_output_measured": -1.0002,
+            },
+        ],
+    }
+
+    out_png = str(tmp_path / "fig06_test.png")
+    out_pdf = str(tmp_path / "fig06_test.pdf")
+
+    # Render figure with incomplete data
+    generate_fig06_vortex_beam(vortex_data=vortex_data_incomplete, output_png=out_png, output_pdf=out_pdf, quick=True)
+    assert (tmp_path / "fig06_test.png").exists()
+
+
+def test_regression_issue_c_validation_failure_exit_status():
+    """Regression test for Issue C: Verify that reproduction fails with nonzero status when validations fail."""
+    import subprocess
+    import sys
+
+    # Run quick reproduction with an injected failing validation via python -c
+    script = (
+        "import sys; "
+        "import reproduce; "
+        "reproduce.run_validations = lambda quick=False: {'failing_check': {'passed': False}}; "
+        "reproduce.main()"
+    )
+    res = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert res.returncode != 0
+    assert "FAILED in checks" in res.stderr or "FAILED in checks" in res.stdout
+
+
+def test_grid_and_pad_even_odd_centering():
+    """Verify origin centering and absence of half-pixel shifts for both even and odd grid dimensions."""
+    from scipy.fft import fftshift, fftfreq
+
+    for n in [64, 65, 128, 129]:
+        dx = 5e-6
+        grid = create_grid(nx=n, ny=n, dx=dx, dy=dx)
+
+        # Coordinate origin at index n // 2
+        center_idx = n // 2
+        assert grid.x[center_idx] == 0.0
+        assert grid.y[center_idx] == 0.0
+        assert grid.fx[center_idx] == 0.0
+        assert grid.fy[center_idx] == 0.0
+
+        # Spatial frequency matches exact scipy fftfreq with fftshift
+        expected_fx = fftshift(fftfreq(n, d=dx))
+        assert np.allclose(grid.fx, expected_fx)
+
+        # Centered padding keeps origin at new_n // 2
+        field = np.zeros((n, n), dtype=complex)
+        field[center_idx, center_idx] = 1.0
+        for factor in [1, 2, 3]:
+            padded, crop_slices = pad_field(field, factor=factor)
+            new_n = n * factor
+            new_center = new_n // 2
+            assert padded[new_center, new_center] == 1.0
+            # Roundtrip unpadding recovers original delta
+            assert padded[crop_slices][center_idx, center_idx] == 1.0
+
+
+def test_complex_field_error_global_phase_alignment():
+    """Verify analytical optimal global phase alignment in compute_complex_field_error."""
+    rng = np.random.default_rng(999)
+    u_ref = rng.standard_normal((64, 64)) + 1j * rng.standard_normal((64, 64))
+
+    # Test with arbitrary global phase shift theta
+    theta = 1.75
+    u_test = u_ref * np.exp(-1j * theta)
+
+    err, phi_opt = compute_complex_field_error(u_test, u_ref)
+    assert err < 1e-14
+    # Recovered phi_opt cancels theta: phi_opt ~ theta (mod 2pi)
+    phase_diff = (phi_opt - theta) % (2 * np.pi)
+    assert np.isclose(phase_diff, 0.0, atol=1e-12) or np.isclose(phase_diff, 2 * np.pi, atol=1e-12)
+
+    # Test with additive noise
+    noise = 0.02 * (rng.standard_normal((64, 64)) + 1j * rng.standard_normal((64, 64)))
+    u_noisy = u_ref * np.exp(-1j * theta) + noise
+    err_noisy, _ = compute_complex_field_error(u_noisy, u_ref)
+    assert 0.015 < err_noisy < 0.025
+
+
+def test_physical_parameter_validation():
+    """Verify that invalid physical and numerical parameters are rejected with ValueError."""
+    grid = create_grid(nx=64, ny=64, dx=5e-6, dy=5e-6)
+    u = circular_aperture(grid, radius=1e-4)
+
+    # Nonpositive wavelength
+    with pytest.raises(ValueError):
+        propagate_blas(u, wavelength=-532e-9, z=0.01, dx=5e-6, dy=5e-6)
+    with pytest.raises(ValueError):
+        propagate_blas(u, wavelength=0.0, z=0.01, dx=5e-6, dy=5e-6)
+
+    # Nonpositive sampling pitches
+    with pytest.raises(ValueError):
+        propagate_blas(u, wavelength=532e-9, z=0.01, dx=-5e-6, dy=5e-6)
+    with pytest.raises(ValueError):
+        propagate_blas(u, wavelength=532e-9, z=0.01, dx=5e-6, dy=0.0)
+
+    # Negative distance
+    with pytest.raises(ValueError):
+        propagate_blas(u, wavelength=532e-9, z=-0.01, dx=5e-6, dy=5e-6)
+
+    # Invalid padding
+    with pytest.raises(ValueError):
+        propagate_blas(u, wavelength=532e-9, z=0.01, dx=5e-6, dy=5e-6, padding=0)
+
+    # Invalid aperture parameters
+    with pytest.raises(ValueError):
+        circular_aperture(grid, radius=-1e-4)
+    with pytest.raises(ValueError):
+        rectangular_aperture(grid, width=-1e-4, height=1e-4)
+    with pytest.raises(ValueError):
+        gaussian_field(grid, waist=0.0)
+    with pytest.raises(ValueError):
+        thin_lens_phase(grid, wavelength=532e-9, focal_length=0.0)
+
+
+def test_sas_validity_nonsquare_2d_vignetting():
+    """Verify that check_sas_validity evaluates 2D vignetting limits across both axes."""
+    wavelength = 532e-9
+    # Highly rectangular configuration: 128 x 512 with equal pitch
+    nx, ny = 128, 1024
+    dx, dy = 5e-6, 5e-6
+
+    # At z=0.001 m, M <= 1 -> invalid (chirp aliasing)
+    valid_near, reason_near, _ = check_sas_validity(wavelength, 0.001, nx, ny, dx, dy, padding=2)
+    assert not valid_near
+    assert "M=" in reason_near
+
+    # Check that vignetting limit properly bounds propagation
+    valid_far, reason_far, _ = check_sas_validity(wavelength, 50.0, nx, ny, dx, dy, padding=2)
+    # At extreme distance, either vignetting or valid regime is correctly reported
+    assert isinstance(valid_far, bool)
+

@@ -228,30 +228,29 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
     z_focus_meas = float(-p_fit[1] / (2.0 * p_fit[0]))
     w_focus_meas = float(np.polyval(p_fit, z_focus_meas))
 
-    # Format measured values with realistic numerical precision
-    # Focus position stable to +-0.01 mm; waist stable to +-0.1 um based on dz, padding, and ROI checks
-    focus_z_meas_rounded = float(np.round(z_focus_meas, 5))  # 0.07354 m = 73.54 mm
-    waist_meas_rounded = float(np.round(w_focus_meas, 7))     # 4.19e-5 m = 41.9 um
-
-    # Relative difference between reported 73.54 mm and analytical 73.5356 mm is ~0.006% (within +-0.01 mm uncertainty)
-    pos_err_rel = float(abs(focus_z_meas_rounded - z_focus_th) / z_focus_th)
-    waist_err_rel = float(abs(waist_meas_rounded - w_focus_th) / w_focus_th)
+    # Evaluate true relative errors from raw unrounded measurements
+    pos_err_rel = float(abs(z_focus_meas - z_focus_th) / z_focus_th)
+    waist_err_rel = float(abs(w_focus_meas - w_focus_th) / w_focus_th)
     beam_radius_l2 = float(np.linalg.norm(np.array(waists_meas) - np.array(waists_th)) / np.linalg.norm(np.array(waists_th)))
+
+    dz_step = float(z_scan[1] - z_scan[0])
+    focus_uncertainty = dz_step / 10.0
+    waist_uncertainty = 1.0e-7
 
     results["thin_lens_focus"] = {
         "passed": bool(pos_err_rel < 0.02 and waist_err_rel < 0.03),
         "focus_z_theory_m": float(z_focus_th),
-        "focus_z_measured_m": focus_z_meas_rounded,
+        "focus_z_measured_m": float(z_focus_meas),
         "focus_z_relative_error": float(pos_err_rel),
-        "focus_z_uncertainty_m": 1.0e-5,
+        "focus_z_uncertainty_m": float(focus_uncertainty),
         "waist_theory_m": float(w_focus_th),
-        "waist_measured_m": waist_meas_rounded,
+        "waist_measured_m": float(w_focus_meas),
         "waist_relative_error": float(waist_err_rel),
-        "waist_uncertainty_m": 1.0e-7,
+        "waist_uncertainty_m": float(waist_uncertainty),
         "beam_radius_l2_error": float(beam_radius_l2),
-        "z_step_m": float(z_scan[1] - z_scan[0]),
+        "z_step_m": float(dz_step),
         "fit_method": "quadratic_interpolation",
-        "precision_note": "Numerical precision: focus position 73.54 +- 0.01 mm, beam waist 41.9 +- 0.1 um from convergence stability",
+        "precision_note": f"Focus position {z_focus_meas*1e3:.4f} mm (raw rel err {pos_err_rel*100:.4f}%), waist {w_focus_meas*1e6:.3f} um (raw rel err {waist_err_rel*100:.4f}%)",
     }
 
     # Test 6: Optical vortex topological charge conservation
@@ -620,6 +619,12 @@ def main():
     all_passed = all(v["passed"] for v in validations.values())
     status_str = "PASS" if all_passed else "FAIL"
     print(f"Validation status: {status_str}")
+
+    if not all_passed:
+        failing_tests = [k for k, v in validations.items() if not v["passed"]]
+        print(f"ERROR: Mandatory physical validation FAILED in checks: {failing_tests}", file=sys.stderr)
+        save_results(validations, [])
+        sys.exit(1)
 
     print("Benchmarking propagation methods and sampling convergence...")
     metrics = run_benchmark_metrics(quick=args.quick)

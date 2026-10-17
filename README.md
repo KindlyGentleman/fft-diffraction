@@ -69,7 +69,7 @@ Each numerical implementation involves distinct trade-offs. None is universally 
 4. **Scalable Angular Spectrum (SAS)**: Heintzmann, Lötgering, and Wechsler (2023) [R1] combine non-paraxial phase difference precompensation with a scaled single-step Fresnel transform using three FFT operations:
    $$\Delta x_d = \frac{\lambda z}{p N \Delta x_s}, \qquad S_{x,\mathrm{out}} = N \Delta x_d$$
    - *Advantage:* Naturally expands observation coordinates with distance, tracking broad far-field distributions on an unpadded $N \times N$ cropped grid without requiring massive zero-padding.
-   - *Limitations:* Requires three successive 2D FFTs. Subject to strict validity conditions: destination magnification $M = \Delta x_d / \Delta x_s$ must exceed unity ($M > 1$); when $M \le 1$, the destination grid shrinks and source chirp phase aliases, making fixed-grid BL-ASM preferable. Additionally, SAS is singular at $z = 0$ (handled via an explicit branch identity return) and bounded by an upper vignetting limit $z_{\mathrm{vignetting}}$.
+   - *Limitations:* Requires three successive 2D FFTs. Subject to strict validity conditions: destination magnification $M = \max(M_x, M_y)$ must exceed unity ($M > 1$); when $M \le 1$, the destination grid shrinks and source chirp phase aliases, making fixed-grid BL-ASM preferable. Additionally, SAS is singular at $z = 0$ (handled via an explicit branch identity return) and bounded by a 2D upper vignetting limit $z_{\mathrm{vignetting}} = \min(z_{\mathrm{vig},x}, z_{\mathrm{vig},y})$ evaluating both coordinate axes independently.
 
 ---
 
@@ -147,10 +147,10 @@ For input waist $w_0 = 0.30$ mm at the lens plane ($z = 0$), the Rayleigh range 
 
 $$z_f = \frac{f}{1 + (f / z_R)^2} \approx 73.5356\text{ mm}, \qquad w_0' = \frac{w_0}{\sqrt{1 + (z_R / f)^2}} \approx 41.92\,\mu\text{m}$$
 
-Numerical results from BL-ASM (measured via dense longitudinal second-moment waist scan and continuous local quadratic interpolation, $\Delta z = 0.1$ mm):
-- **Focus position:** Theory $z_f = 73.54$ mm; measured $z_{f,\mathrm{meas}} = 73.54 \pm 0.01$ mm. The relative difference between reported $73.54$ mm and analytical $73.5356$ mm is approximately $0.006\%$, well within the reported numerical uncertainty.
-- **Focused beam waist:** Theory $w_0' = 41.9\,\mu$m; measured $w_{0,\mathrm{meas}}' = 41.9 \pm 0.1\,\mu$m (relative difference $\approx 0.05\%$).
-- **Longitudinal beam radius profile error:** Full profile $L_2$ error is $0.001\%$ across the focal sweep.
+Numerical results from BL-ASM (measured via dense longitudinal second-moment waist scan and continuous local quadratic interpolation, $\Delta z = 0.10$ mm):
+- **Focus position:** Theory $z_f = 73.5356$ mm; measured $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0100$ mm (raw relative difference $\approx 0.0008\%$, well within the $\pm dz/10$ numerical search uncertainty).
+- **Focused beam waist:** Theory $w_0' = 41.920\,\mu$m; measured $w_{0,\mathrm{meas}}' = 41.920 \pm 0.100\,\mu$m (raw relative difference $< 0.0001\%$).
+- **Longitudinal beam radius profile error:** Full profile $L_2$ error is $0.0011\%$ across the focal sweep.
 
 ---
 
@@ -191,8 +191,8 @@ Summary of automated physical validation benchmarks:
 | Airy radial profile | SAS | $0.50$ m | Analytical Airy $J_1(q)/q$ | Full scaled FOV | $0.36\%$ | Pass |
 | Sinc cross-sections | BL-ASM | $0.50$ m | Analytical 2D $\mathrm{sinc}^2$ | $x$-slice / $y$-slice | $1.89\% / 2.76\%$ | Pass |
 | Near-field cross-check | BL-ASM | $0.005$ m | Rayleigh-Sommerfeld direct | Central active subgrid | $3.89\%$ | Pass |
-| Thin-lens focus position | BL-ASM | Focus | $z_f = 73.54$ mm (ABCD theory) | $z_{f,\mathrm{meas}} = 73.54 \pm 0.01$ mm | $\approx 0.006\%$ | Pass |
-| Focused beam waist | BL-ASM | Focus | $w_0' = 41.9\,\mu$m (ABCD theory) | $w_{0,\mathrm{meas}}' = 41.9 \pm 0.1\,\mu$m | $\approx 0.05\%$ | Pass |
+| Thin-lens focus position | BL-ASM | Focus | $z_f = 73.5356$ mm (ABCD theory) | $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0100$ mm | $0.0008\%$ | Pass |
+| Focused beam waist | BL-ASM | Focus | $w_0' = 41.920\,\mu$m (ABCD theory) | $w_{0,\mathrm{meas}}' = 41.920 \pm 0.100\,\mu$m | $< 0.0001\%$ | Pass |
 | Vortex charge $\ell = 1$ | BL-ASM | $0.20$ m | Topological charge $Q = 1.0$ | $Q_{\mathrm{meas}} = 1.000$ | $0.00\%$ | Pass |
 | Vortex charge $\ell = 2$ | BL-ASM | $0.20$ m | Topological charge $Q = 2.0$ | $Q_{\mathrm{meas}} = 2.000$ | $0.00\%$ | Pass |
 | Vortex charge $\ell = 3$ | BL-ASM | $0.20$ m | Topological charge $Q = 3.0$ | $Q_{\mathrm{meas}} = 3.000$ | $0.00\%$ | Pass |

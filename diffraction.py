@@ -32,12 +32,17 @@ class Grid:
 
 def create_grid(nx: int, ny: int, dx: float, dy: float) -> Grid:
     """Generate centered spatial and spatial-frequency grids."""
-    x = (np.arange(nx) - nx / 2.0) * dx
-    y = (np.arange(ny) - ny / 2.0) * dy
+    if nx <= 0 or ny <= 0:
+        raise ValueError("Grid dimensions nx and ny must be positive integers.")
+    if dx <= 0.0 or dy <= 0.0 or not np.isfinite(dx) or not np.isfinite(dy):
+        raise ValueError("Grid sampling pitches dx and dy must be positive, finite numbers.")
+
+    x = (np.arange(nx) - nx // 2) * dx
+    y = (np.arange(ny) - ny // 2) * dy
     X, Y = np.meshgrid(x, y)
 
-    fx = (np.arange(nx) - nx / 2.0) / (nx * dx)
-    fy = (np.arange(ny) - ny / 2.0) / (ny * dy)
+    fx = (np.arange(nx) - nx // 2) / (nx * dx)
+    fy = (np.arange(ny) - ny // 2) / (ny * dy)
     FX, FY = np.meshgrid(fx, fy)
 
     return Grid(
@@ -50,12 +55,16 @@ def create_grid(nx: int, ny: int, dx: float, dy: float) -> Grid:
 
 def circular_aperture(grid: Grid, radius: float) -> np.ndarray:
     """Generate a binary circular aperture mask."""
+    if radius <= 0.0 or not np.isfinite(radius):
+        raise ValueError("Aperture radius must be a positive finite number.")
     r = np.sqrt(grid.X**2 + grid.Y**2)
     return (r <= radius).astype(np.complex128)
 
 
 def rectangular_aperture(grid: Grid, width: float, height: float) -> np.ndarray:
     """Generate a binary rectangular aperture mask."""
+    if width <= 0.0 or height <= 0.0 or not np.isfinite(width) or not np.isfinite(height):
+        raise ValueError("Aperture width and height must be positive finite numbers.")
     mask = (np.abs(grid.X) <= width / 2.0) & (np.abs(grid.Y) <= height / 2.0)
     return mask.astype(np.complex128)
 
@@ -67,6 +76,8 @@ def double_slit_aperture(
     separation: float,
 ) -> np.ndarray:
     """Generate a binary double slit transmission mask."""
+    if slit_width <= 0.0 or slit_height <= 0.0 or separation <= 0.0:
+        raise ValueError("Slit width, height, and separation must be positive numbers.")
     slit1 = (np.abs(grid.X - separation / 2.0) <= slit_width / 2.0) & (np.abs(grid.Y) <= slit_height / 2.0)
     slit2 = (np.abs(grid.X + separation / 2.0) <= slit_width / 2.0) & (np.abs(grid.Y) <= slit_height / 2.0)
     return (slit1 | slit2).astype(np.complex128)
@@ -74,12 +85,16 @@ def double_slit_aperture(
 
 def annular_aperture(grid: Grid, r_inner: float, r_outer: float) -> np.ndarray:
     """Generate a binary annular (ring-shaped) aperture mask."""
+    if r_inner < 0.0 or r_outer <= r_inner or not np.isfinite(r_outer):
+        raise ValueError("Annular radii must satisfy 0 <= r_inner < r_outer with finite r_outer.")
     r = np.sqrt(grid.X**2 + grid.Y**2)
     return ((r >= r_inner) & (r <= r_outer)).astype(np.complex128)
 
 
 def gaussian_field(grid: Grid, waist: float) -> np.ndarray:
     """Generate a fundamental Gaussian beam complex amplitude field."""
+    if waist <= 0.0 or not np.isfinite(waist):
+        raise ValueError("Gaussian beam waist must be a positive finite number.")
     r = np.sqrt(grid.X**2 + grid.Y**2)
     return np.exp(-(r / waist)**2).astype(np.complex128)
 
@@ -92,6 +107,8 @@ def binary_grating(
     height: float,
 ) -> np.ndarray:
     """Generate a 1D binary transmission grating bounded by a rectangular envelope."""
+    if period <= 0.0 or not (0.0 <= duty_cycle <= 1.0) or width <= 0.0 or height <= 0.0:
+        raise ValueError("Invalid grating parameters: period, width, height must be > 0 and 0 <= duty_cycle <= 1.")
     within_bounds = (np.abs(grid.X) <= width / 2.0) & (np.abs(grid.Y) <= height / 2.0)
     periodic_slits = ((grid.X + period / 2.0) % period) < (period * duty_cycle)
     return (within_bounds & periodic_slits).astype(np.complex128)
@@ -99,6 +116,8 @@ def binary_grating(
 
 def triangular_aperture(grid: Grid, side_length: float) -> np.ndarray:
     """Generate a binary equilateral triangular aperture mask centered at origin."""
+    if side_length <= 0.0 or not np.isfinite(side_length):
+        raise ValueError("Triangular aperture side length must be a positive finite number.")
     h = side_length * np.sqrt(3.0) / 2.0
     y_bottom = -h / 3.0
     y_top = 2.0 * h / 3.0
@@ -113,13 +132,17 @@ def shifted_circular_aperture(
     y_offset: float,
 ) -> np.ndarray:
     """Generate an off-axis (shifted) binary circular aperture mask."""
+    if radius <= 0.0 or not np.isfinite(radius):
+        raise ValueError("Aperture radius must be a positive finite number.")
     r = np.sqrt((grid.X - x_offset)**2 + (grid.Y - y_offset)**2)
     return (r <= radius).astype(np.complex128)
 
 
 def pad_field(field: np.ndarray, factor: int = 2) -> Tuple[np.ndarray, Tuple[slice, slice]]:
     """Centrally zero-pad a 2D field by an integer factor."""
-    if factor <= 1:
+    if factor < 1:
+        raise ValueError("Padding factor must be an integer >= 1.")
+    if factor == 1:
         ny, nx = field.shape
         return field.copy(), (slice(0, ny), slice(0, nx))
 
@@ -127,8 +150,8 @@ def pad_field(field: np.ndarray, factor: int = 2) -> Tuple[np.ndarray, Tuple[sli
     new_ny, new_nx = ny * factor, nx * factor
     padded = np.zeros((new_ny, new_nx), dtype=field.dtype)
 
-    sy = (new_ny - ny) // 2
-    sx = (new_nx - nx) // 2
+    sy = (new_ny // 2) - (ny // 2)
+    sx = (new_nx // 2) - (nx // 2)
     slices = (slice(sy, sy + ny), slice(sx, sx + nx))
     padded[slices] = field
     return padded, slices
@@ -239,8 +262,14 @@ def propagate_sas(
     """
     if field.ndim != 2:
         raise ValueError("Field array must be 2D.")
-    if z < 0.0:
-        raise ValueError("Propagation distance must be non-negative.")
+    if wavelength <= 0.0 or not np.isfinite(wavelength):
+        raise ValueError("Wavelength must be a positive finite number.")
+    if z < 0.0 or not np.isfinite(z):
+        raise ValueError("Propagation distance must be non-negative and finite.")
+    if dx <= 0.0 or dy <= 0.0 or not np.isfinite(dx) or not np.isfinite(dy):
+        raise ValueError("Grid sampling pitches dx and dy must be positive and finite.")
+    if padding < 1:
+        raise ValueError("Padding factor must be an integer >= 1.")
 
     ny, nx = field.shape
     if z == 0.0:
@@ -274,8 +303,8 @@ def propagate_sas(
     dqy = wavelength * z / pgrid.Sy
     u_scaled_p = fftshift(fft2(ifftshift(u_chirped))) * (dx * dy / (1j * wavelength * z))
 
-    qx = (np.arange(nx_p) - nx_p / 2.0) * dqx
-    qy = (np.arange(ny_p) - ny_p / 2.0) * dqy
+    qx = (np.arange(nx_p) - nx_p // 2) * dqx
+    qy = (np.arange(ny_p) - ny_p // 2) * dqy
     qx_grid, qy_grid = np.meshgrid(qx, qy)
 
     h2 = np.exp(1j * k * z) * np.exp(1j * (k / (2.0 * z)) * (qx_grid**2 + qy_grid**2))
@@ -300,8 +329,14 @@ def propagate_sft_fresnel(
     """
     if field.ndim != 2:
         raise ValueError("Field array must be 2D.")
-    if z < 0.0:
-        raise ValueError("Propagation distance must be non-negative.")
+    if wavelength <= 0.0 or not np.isfinite(wavelength):
+        raise ValueError("Wavelength must be a positive finite number.")
+    if z < 0.0 or not np.isfinite(z):
+        raise ValueError("Propagation distance must be non-negative and finite.")
+    if dx <= 0.0 or dy <= 0.0 or not np.isfinite(dx) or not np.isfinite(dy):
+        raise ValueError("Grid sampling pitches dx and dy must be positive and finite.")
+    if padding < 1:
+        raise ValueError("Padding factor must be an integer >= 1.")
 
     ny, nx = field.shape
     if z == 0.0:
@@ -319,8 +354,8 @@ def propagate_sft_fresnel(
     dqy = wavelength * z / pgrid.Sy
     u_scaled_p = fftshift(fft2(ifftshift(u_chirped))) * (dx * dy / (1j * wavelength * z))
 
-    qx = (np.arange(nx_p) - nx_p / 2.0) * dqx
-    qy = (np.arange(ny_p) - ny_p / 2.0) * dqy
+    qx = (np.arange(nx_p) - nx_p // 2) * dqx
+    qy = (np.arange(ny_p) - ny_p // 2) * dqy
     qx_grid, qy_grid = np.meshgrid(qx, qy)
 
     h2 = np.exp(1j * k * z) * np.exp(1j * (k / (2.0 * z)) * (qx_grid**2 + qy_grid**2))
@@ -353,8 +388,14 @@ def propagate(
     """
     if field.ndim != 2:
         raise ValueError("Field array must be 2D.")
-    if z < 0.0:
-        raise ValueError("Propagation distance must be non-negative.")
+    if wavelength <= 0.0 or not np.isfinite(wavelength):
+        raise ValueError("Wavelength must be a positive finite number.")
+    if z < 0.0 or not np.isfinite(z):
+        raise ValueError("Propagation distance must be non-negative and finite.")
+    if dx <= 0.0 or dy <= 0.0 or not np.isfinite(dx) or not np.isfinite(dy):
+        raise ValueError("Grid sampling pitches dx and dy must be positive and finite.")
+    if padding < 1:
+        raise ValueError("Padding factor must be an integer >= 1.")
 
     method_key = method.lower()
     if method_key not in ("asm", "blas", "fresnel"):
@@ -543,28 +584,39 @@ def compare_on_common_grid(
     y_ref: np.ndarray,
     n_eval: int = 160,
 ) -> Tuple[float, float, float]:
-    """Interpolate test and reference intensities onto a neutral common physical grid and calculate L2 errors.
+    """Interpolate test and reference intensities onto their true common physical domain and calculate L2 errors.
 
-    Determines Omega_common = Omega_test intersect Omega_ref, creates a neutral evaluation grid,
-    and returns (relative_l2_error, peak_normalized_l2_error, common_width).
+    Determines Omega_common = [max(x1_min, x2_min), min(x1_max, x2_max)] x [max(y1_min, y2_min), min(y1_max, y2_max)]
+    without extrapolating beyond either native grid extent.
+
+    Returns:
+        (relative_l2_error, peak_normalized_l2_error, common_width)
     """
     from scipy.interpolate import RegularGridInterpolator
 
-    w_x = min(float(np.max(x_test)), float(np.max(x_ref)))
-    w_y = min(float(np.max(y_test)), float(np.max(y_ref)))
-    if w_x <= 0 or w_y <= 0:
+    x_min = max(float(x_test[0]), float(x_ref[0]))
+    x_max = min(float(x_test[-1]), float(x_ref[-1]))
+    y_min = max(float(y_test[0]), float(y_ref[0]))
+    y_max = min(float(y_test[-1]), float(y_ref[-1]))
+
+    if x_min >= x_max or y_min >= y_max:
         return float("nan"), float("nan"), 0.0
 
-    x_eval = np.linspace(-w_x, w_x, n_eval)
-    y_eval = np.linspace(-w_y, w_y, n_eval)
+    common_w = float(x_max - x_min)
+    common_h = float(y_max - y_min)
+    if common_w <= 0.0 or common_h <= 0.0:
+        return float("nan"), float("nan"), 0.0
+
+    x_eval = np.linspace(x_min, x_max, n_eval)
+    y_eval = np.linspace(y_min, y_max, n_eval)
     pts_y, pts_x = np.meshgrid(y_eval, x_eval, indexing="ij")
     eval_pts = np.column_stack([pts_y.ravel(), pts_x.ravel()])
 
     i_test = np.abs(u_test)**2 if np.iscomplexobj(u_test) else np.asarray(u_test, dtype=np.float64)
     i_ref_real = np.abs(i_ref)**2 if np.iscomplexobj(i_ref) else np.asarray(i_ref, dtype=np.float64)
 
-    interp_test = RegularGridInterpolator((y_test, x_test), i_test, bounds_error=False, fill_value=0.0)
-    interp_ref = RegularGridInterpolator((y_ref, x_ref), i_ref_real, bounds_error=False, fill_value=0.0)
+    interp_test = RegularGridInterpolator((y_test, x_test), i_test, bounds_error=True)
+    interp_ref = RegularGridInterpolator((y_ref, x_ref), i_ref_real, bounds_error=True)
 
     i_test_eval = interp_test(eval_pts).reshape((n_eval, n_eval))
     i_ref_eval = interp_ref(eval_pts).reshape((n_eval, n_eval))
@@ -585,7 +637,42 @@ def compare_on_common_grid(
     else:
         peak_l2 = float("nan")
 
-    return rel_l2, peak_l2, float(2.0 * w_x)
+    return rel_l2, peak_l2, common_w
+
+
+def compute_complex_field_error(
+    u_test: np.ndarray,
+    u_ref: np.ndarray,
+    amplitude_mask_threshold: Optional[float] = None,
+) -> Tuple[float, float]:
+    """Compute relative L2 complex-field error with optimal analytical global phase alignment.
+
+    Minimizes || u_test * exp(i*phi) - u_ref ||_2 / || u_ref ||_2 over global phase phi.
+    Optionally masks out low-amplitude regions below threshold * max(|u_ref|).
+
+    Returns:
+        (relative_complex_error, optimal_phase_shift_rad)
+    """
+    if u_test.shape != u_ref.shape:
+        raise ValueError("u_test and u_ref must have the same shape.")
+
+    if amplitude_mask_threshold is not None and amplitude_mask_threshold > 0:
+        mask = np.abs(u_ref) >= (amplitude_mask_threshold * np.max(np.abs(u_ref)))
+        t = u_test[mask]
+        r = u_ref[mask]
+    else:
+        t = u_test.ravel()
+        r = u_ref.ravel()
+
+    norm_r = np.linalg.norm(r)
+    if norm_r == 0.0:
+        return float("nan"), 0.0
+
+    inner = np.sum(t * np.conj(r))
+    phi_opt = -float(np.angle(inner)) if abs(inner) > 1e-15 else 0.0
+    aligned_diff = t * np.exp(1j * phi_opt) - r
+    rel_err = float(np.linalg.norm(aligned_diff) / norm_r)
+    return rel_err, phi_opt
 
 
 
@@ -630,8 +717,10 @@ def thin_lens_phase(grid: Grid, wavelength: float, focal_length: float) -> np.nd
         wavelength: Light wavelength in meters.
         focal_length: Focal length in meters (positive for converging lens).
     """
-    if focal_length == 0.0:
-        raise ValueError("Focal length must be non-zero.")
+    if focal_length == 0.0 or not np.isfinite(focal_length):
+        raise ValueError("Focal length must be non-zero and finite.")
+    if wavelength <= 0.0 or not np.isfinite(wavelength):
+        raise ValueError("Wavelength must be a positive finite number.")
     k = 2.0 * np.pi / wavelength
     r_sq = grid.X**2 + grid.Y**2
     return np.exp(-1j * (k / (2.0 * focal_length)) * r_sq).astype(np.complex128)
@@ -647,6 +736,8 @@ def spiral_phase(grid: Grid, charge: int) -> np.ndarray:
         grid: Spatial grid representation.
         charge: Integer topological charge ell.
     """
+    if not np.isfinite(charge):
+        raise ValueError("Topological charge must be a finite integer.")
     phi = np.arctan2(grid.Y, grid.X)
     t = np.exp(1j * charge * phi).astype(np.complex128)
     if charge != 0:
@@ -775,14 +866,20 @@ def check_sas_validity(
     if m <= 1.0:
         return False, f"Chirp aliased / grid shrinks: M={m:.2f} <= 1 (Std/BL-ASM preferred)", m
 
-    # Condition 2: Vignetting distance limit (Heintzmann et al., Eq. 18 / Section F)
-    L = nx * dx
-    term = np.sqrt(L**2 / (8.0 * L**2 + nx**2 * wavelength**2))
-    denom = wavelength * (-1.0 + 2.0 * np.sqrt(2.0) * term)
-    if denom > 0:
-        z_vignette = float(abs(-4.0 * L * np.sqrt(8.0 * L**2 / nx**2 + wavelength**2) * term / denom))
-        if z > z_vignette:
-            return False, f"Vignetting limit exceeded (z > {z_vignette:.1f} m)", m
+    # Condition 2: 2D vignetting distance limit evaluated for both dimensions (Heintzmann et al., Eq. 18)
+    z_vignette_limits = []
+    for n_dim, d_dim in [(nx, dx), (ny, dy)]:
+        L_dim = n_dim * d_dim
+        term = np.sqrt(L_dim**2 / (8.0 * L_dim**2 + n_dim**2 * wavelength**2))
+        denom = wavelength * (-1.0 + 2.0 * np.sqrt(2.0) * term)
+        if denom > 0:
+            z_vig = float(abs(-4.0 * L_dim * np.sqrt(8.0 * L_dim**2 / n_dim**2 + wavelength**2) * term / denom))
+            z_vignette_limits.append(z_vig)
+
+    if z_vignette_limits:
+        z_vignette_min = min(z_vignette_limits)
+        if z > z_vignette_min:
+            return False, f"Vignetting limit exceeded (z > {z_vignette_min:.1f} m)", m
 
     return True, f"Valid SAS regime (M={m:.2f} > 1)", m
 
