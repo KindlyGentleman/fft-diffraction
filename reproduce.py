@@ -52,6 +52,7 @@ from diffraction import (
     asm_transfer_function,
     blas_transfer_function,
     compute_bandlimit_frequencies,
+    compute_complex_field_error,
     jinc,
 )
 from visualize import (
@@ -186,10 +187,13 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
     u_blas_sub = u_blas_nf[np.ix_(sel_y, sel_x)]
 
     err_rs = float(np.linalg.norm(np.abs(u_blas_sub)**2 - np.abs(u_rs)**2) / np.linalg.norm(np.abs(u_rs)**2))
+    err_complex_rs, opt_phase_rs = compute_complex_field_error(u_blas_sub, u_rs)
 
     results["near_field_direct_integration"] = {
         "passed": bool(err_rs < 0.05),
         "relative_l2_error": float(err_rs),
+        "complex_field_error": float(err_complex_rs),
+        "optimal_phase_alignment_rad": float(opt_phase_rs),
     }
 
     # Test 5: Thin-lens focusing against ABCD Gaussian beam theory
@@ -573,17 +577,39 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
     return metrics_rows
 
 
-def save_results(validations: Dict[str, Any], metrics: List[Dict[str, Any]]) -> None:
-    """Save validation dictionary to JSON and benchmark metrics to CSV."""
-    os.makedirs("results", exist_ok=True)
+BENCHMARK_COLUMNS = [
+    "experiment", "N", "method", "z_m", "dx_source_m", "dx_output_m",
+    "source_fov_m", "output_fov_m", "magnification", "common_width_m",
+    "relative_l2_error", "peak_normalized_error", "runtime_s",
+    "valid", "sas_reason", "reference_converged"
+]
 
-    with open("results/validation.json", "w", encoding="utf-8") as f:
+
+def save_results(validations: Dict[str, Any], metrics: List[Dict[str, Any]], output_dir: str = "results") -> None:
+    """Save validation dictionary to JSON and benchmark metrics to CSV atomically."""
+    os.makedirs(output_dir, exist_ok=True)
+
+    val_path = os.path.join(output_dir, "validation.json")
+    val_tmp = os.path.join(output_dir, "validation.json.tmp")
+    with open(val_tmp, "w", encoding="utf-8") as f:
         json.dump(validations, f, indent=2)
 
-    with open("results/metrics.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=list(metrics[0].keys()))
-        writer.writeheader()
-        writer.writerows(metrics)
+    met_path = os.path.join(output_dir, "metrics.csv")
+    met_tmp = os.path.join(output_dir, "metrics.csv.tmp")
+    if metrics:
+        fieldnames = list(metrics[0].keys())
+        with open(met_tmp, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(metrics)
+    else:
+        with open(met_tmp, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=BENCHMARK_COLUMNS)
+            writer.writeheader()
+
+    # Atomic rename once both temporary files are serialized successfully
+    os.replace(val_tmp, val_path)
+    os.replace(met_tmp, met_path)
 
 
 def main():
@@ -592,6 +618,7 @@ def main():
     parser.add_argument("--figure-only", action="store_true", help="Only generate publication figures 1 to 6.")
     parser.add_argument("--gif-only", action="store_true", help="Only generate animated loop GIFs.")
     parser.add_argument("--all", action="store_true", help="Run validation, benchmarks, and all figures and GIFs.")
+    parser.add_argument("--output-dir", type=str, default="results", help="Directory to save numerical results.")
     args = parser.parse_args()
 
     if args.figure_only:
@@ -623,13 +650,20 @@ def main():
     if not all_passed:
         failing_tests = [k for k, v in validations.items() if not v["passed"]]
         print(f"ERROR: Mandatory physical validation FAILED in checks: {failing_tests}", file=sys.stderr)
-        save_results(validations, [])
+        # Record failure diagnostics without overwriting or corrupting valid benchmark results
+        os.makedirs(args.output_dir, exist_ok=True)
+        diag_path = os.path.join(args.output_dir, "validation_failure.json")
+        try:
+            with open(diag_path, "w", encoding="utf-8") as f:
+                json.dump(validations, f, indent=2)
+        except Exception:
+            pass
         sys.exit(1)
 
     print("Benchmarking propagation methods and sampling convergence...")
     metrics = run_benchmark_metrics(quick=args.quick)
-    save_results(validations, metrics)
-    print("Metrics written to results/metrics.csv and results/validation.json")
+    save_results(validations, metrics, output_dir=args.output_dir)
+    print(f"Metrics written to {os.path.join(args.output_dir, 'metrics.csv')} and {os.path.join(args.output_dir, 'validation.json')}")
 
     print("Rendering Figures 1 through 6...")
     generate_fig01_aperture_diffraction()

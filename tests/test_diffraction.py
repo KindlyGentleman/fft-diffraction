@@ -834,6 +834,16 @@ def test_regression_issue_a_method_selection_map_isolation(tmp_path):
     generate_fig04_method_selection_map(metrics_data=mixed_data, output_png=out_png, output_pdf=out_pdf)
     assert (tmp_path / "fig04_test.png").exists()
 
+    # Foreign-only data must be rejected with ValueError
+    with pytest.raises(ValueError, match="No valid 'method_selection_map' records"):
+        generate_fig04_method_selection_map(metrics_data=[foreign_row], output_png=out_png, output_pdf=out_pdf)
+
+    # Conflicting duplicate cells must be rejected with ValueError
+    conflicting_row = dict(map_row)
+    conflicting_row["relative_l2_error"] = 0.500  # Conflicts significantly with 0.015
+    with pytest.raises(ValueError, match="Conflicting duplicate benchmark records"):
+        generate_fig04_method_selection_map(metrics_data=[map_row, conflicting_row], output_png=out_png, output_pdf=out_pdf)
+
 
 def test_regression_issue_b_vortex_no_theory_substitution(tmp_path):
     """Regression test for Issue B: Verify that optical vortex visualization never substitutes theory for missing charges."""
@@ -864,52 +874,146 @@ def test_regression_issue_b_vortex_no_theory_substitution(tmp_path):
     assert (tmp_path / "fig06_test.png").exists()
 
 
-def test_regression_issue_c_validation_failure_exit_status():
+def test_regression_issue_c_validation_failure_exit_status(tmp_path):
     """Regression test for Issue C: Verify that reproduction fails with nonzero status when validations fail."""
     import subprocess
     import sys
+    import os
 
-    # Run quick reproduction with an injected failing validation via python -c
+    # Run quick reproduction with an injected failing validation via python -c into isolated tmp_path
+    test_out = str(tmp_path / "test_results")
     script = (
         "import sys; "
         "import reproduce; "
         "reproduce.run_validations = lambda quick=False: {'failing_check': {'passed': False}}; "
+        f"sys.argv = ['reproduce.py', '--output-dir', r'{test_out}']; "
         "reproduce.main()"
     )
     res = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
-    assert res.returncode != 0
-    assert "FAILED in checks" in res.stderr or "FAILED in checks" in res.stdout
+    assert res.returncode == 1
+    assert "FAILED in checks" in res.stderr
+    assert "IndexError" not in res.stderr
+    assert "Traceback" not in res.stderr
+    assert os.path.exists(os.path.join(test_out, "validation_failure.json"))
+
+
+def test_save_results_empty_metrics_handling(tmp_path):
+    """Verify that save_results handles empty metrics lists atomically without raising IndexError."""
+    import reproduce
+    import os
+    import json
+    import csv
+
+    test_out = str(tmp_path / "atomic_save_test")
+    dummy_val = {"check_a": {"passed": True}}
+
+    # Call with empty metrics
+    reproduce.save_results(dummy_val, [], output_dir=test_out)
+
+    val_file = os.path.join(test_out, "validation.json")
+    met_file = os.path.join(test_out, "metrics.csv")
+    assert os.path.exists(val_file)
+    assert os.path.exists(met_file)
+
+    with open(val_file, "r", encoding="utf-8") as f:
+        loaded = json.load(f)
+    assert loaded["check_a"]["passed"] is True
+
+    # metrics.csv should have a valid header row and 0 data rows, not 0 bytes
+    assert os.path.getsize(met_file) > 0
+    with open(met_file, "r", encoding="utf-8") as f:
+        reader = list(csv.reader(f))
+    assert len(reader) == 1
+    assert "experiment" in reader[0]
+
+
+def test_validation_failure_preserves_existing_results(tmp_path):
+    """Verify that a failed validation run does not overwrite or truncate existing valid results."""
+    import reproduce
+    import os
+    import json
+    import subprocess
+    import sys
+
+    test_out = str(tmp_path / "preserve_test")
+    os.makedirs(test_out, exist_ok=True)
+    val_file = os.path.join(test_out, "validation.json")
+    met_file = os.path.join(test_out, "metrics.csv")
+
+    # Seed with existing valid results
+    seed_val = {"original": {"passed": True}}
+    with open(val_file, "w", encoding="utf-8") as f:
+        json.dump(seed_val, f)
+    with open(met_file, "w", encoding="utf-8") as f:
+        f.write("experiment,method\noriginal,asm\n")
+
+    orig_val_content = open(val_file, "r", encoding="utf-8").read()
+    orig_met_content = open(met_file, "r", encoding="utf-8").read()
+
+    # Run reproduction with injected failure
+    script = (
+        "import sys; "
+        "import reproduce; "
+        "reproduce.run_validations = lambda quick=False: {'failing_check': {'passed': False}}; "
+        f"sys.argv = ['reproduce.py', '--output-dir', r'{test_out}']; "
+        "reproduce.main()"
+    )
+    res = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+    assert res.returncode == 1
+
+    # Verify original files were NOT touched or corrupted
+    assert open(val_file, "r", encoding="utf-8").read() == orig_val_content
+    assert open(met_file, "r", encoding="utf-8").read() == orig_met_content
+    assert os.path.exists(os.path.join(test_out, "validation_failure.json"))
 
 
 def test_grid_and_pad_even_odd_centering():
-    """Verify origin centering and absence of half-pixel shifts for both even and odd grid dimensions."""
+    """Verify origin centering and absence of half-pixel shifts for even, odd, and rectangular grids."""
     from scipy.fft import fftshift, fftfreq
 
-    for n in [64, 65, 128, 129]:
-        dx = 5e-6
-        grid = create_grid(nx=n, ny=n, dx=dx, dy=dx)
+    grid_shapes = [
+        (64, 64), (65, 65), (128, 128), (129, 129),  # Square even/odd
+        (64, 128), (128, 64),                        # Rectangular even
+        (65, 129), (129, 65),                        # Rectangular odd
+        (64, 65), (129, 128),                        # Mixed odd/even
+    ]
 
-        # Coordinate origin at index n // 2
-        center_idx = n // 2
-        assert grid.x[center_idx] == 0.0
-        assert grid.y[center_idx] == 0.0
-        assert grid.fx[center_idx] == 0.0
-        assert grid.fy[center_idx] == 0.0
+    for nx, ny in grid_shapes:
+        dx, dy = 5e-6, 8e-6
+        grid = create_grid(nx=nx, ny=ny, dx=dx, dy=dy)
+
+        # Coordinate origin at integer indices nx // 2 and ny // 2
+        cx, cy = nx // 2, ny // 2
+        assert grid.x[cx] == 0.0
+        assert grid.y[cy] == 0.0
+        assert grid.fx[cx] == 0.0
+        assert grid.fy[cy] == 0.0
 
         # Spatial frequency matches exact scipy fftfreq with fftshift
-        expected_fx = fftshift(fftfreq(n, d=dx))
-        assert np.allclose(grid.fx, expected_fx)
+        assert np.allclose(grid.fx, fftshift(fftfreq(nx, d=dx)))
+        assert np.allclose(grid.fy, fftshift(fftfreq(ny, d=dy)))
 
-        # Centered padding keeps origin at new_n // 2
-        field = np.zeros((n, n), dtype=complex)
-        field[center_idx, center_idx] = 1.0
+        # Central impulse preservation
+        field = np.zeros((ny, nx), dtype=complex)
+        field[cy, cx] = 1.0
         for factor in [1, 2, 3]:
             padded, crop_slices = pad_field(field, factor=factor)
-            new_n = n * factor
-            new_center = new_n // 2
-            assert padded[new_center, new_center] == 1.0
+            new_cx = (nx * factor) // 2
+            new_cy = (ny * factor) // 2
+            assert padded[new_cy, new_cx] == 1.0
             # Roundtrip unpadding recovers original delta
-            assert padded[crop_slices][center_idx, center_idx] == 1.0
+            assert padded[crop_slices][cy, cx] == 1.0
+            assert np.sum(np.abs(padded)) == 1.0
+
+        # Off-center impulse preservation
+        field_off = np.zeros((ny, nx), dtype=complex)
+        off_x, off_y = min(3, cx - 1), min(2, cy - 1)
+        field_off[cy + off_y, cx - off_x] = 1.0
+        for factor in [1, 2, 3]:
+            padded_off, crop_slices_off = pad_field(field_off, factor=factor)
+            recovered = padded_off[crop_slices_off]
+            assert recovered[cy + off_y, cx - off_x] == 1.0
+            assert np.sum(np.abs(recovered)) == 1.0
 
 
 def test_complex_field_error_global_phase_alignment():
@@ -971,19 +1075,49 @@ def test_physical_parameter_validation():
 
 
 def test_sas_validity_nonsquare_2d_vignetting():
-    """Verify that check_sas_validity evaluates 2D vignetting limits across both axes."""
+    """Verify that check_sas_validity evaluates boundary-specific 2D vignetting and per-axis magnification."""
     wavelength = 532e-9
-    # Highly rectangular configuration: 128 x 512 with equal pitch
-    nx, ny = 128, 1024
-    dx, dy = 5e-6, 5e-6
+    # Configuration with distinct per-axis critical distances and vignetting limits:
+    # Axis X: Nx=128, dx=5 um -> Lx=0.64 mm, z_c,x = 2*128*(5e-6)^2 / 532e-9 = 0.01203 m, z_vig,x ~ 34.04 m
+    # Axis Y: Ny=512, dy=10 um -> Ly=5.12 mm, z_c,y = 2*512*(10e-6)^2 / 532e-9 = 0.19248 m, z_vig,y ~ 2176.86 m
+    nx, ny = 128, 512
+    dx, dy = 5e-6, 10e-6
 
-    # At z=0.001 m, M <= 1 -> invalid (chirp aliasing)
-    valid_near, reason_near, _ = check_sas_validity(wavelength, 0.001, nx, ny, dx, dy, padding=2)
-    assert not valid_near
-    assert "M=" in reason_near
+    # 1. Zero and negative distance: singular
+    v_zero, r_zero, _ = check_sas_validity(wavelength, 0.0, nx, ny, dx, dy, padding=2)
+    assert not v_zero
+    assert "z=0" in r_zero
 
-    # Check that vignetting limit properly bounds propagation
-    valid_far, reason_far, _ = check_sas_validity(wavelength, 50.0, nx, ny, dx, dy, padding=2)
-    # At extreme distance, either vignetting or valid regime is correctly reported
-    assert isinstance(valid_far, bool)
+    # 2. Both axes below critical distance (z=0.005 m < z_c,x < z_c,y)
+    v_near, r_near, m_near = check_sas_validity(wavelength, 0.005, nx, ny, dx, dy, padding=2)
+    assert not v_near
+    assert m_near < 1.0
+
+    # 3. Mixed magnification regime: Mx > 1 but My < 1 (z=0.05 m: z_c,x < z < z_c,y)
+    # Mx = 0.05 / 0.01203 ~ 4.16 > 1, but My = 0.05 / 0.19248 ~ 0.26 <= 1
+    v_mixed, r_mixed, m_mixed = check_sas_validity(wavelength, 0.05, nx, ny, dx, dy, padding=2)
+    assert not v_mixed
+    assert "My=" in r_mixed
+    assert m_mixed < 1.0
+
+    # 4. Valid propagation regime: both Mx > 1 and My > 1 and z < z_vig (z=0.25 m)
+    v_valid, r_valid, m_valid = check_sas_validity(wavelength, 0.25, nx, ny, dx, dy, padding=2)
+    assert v_valid
+    assert m_valid > 1.0
+    assert "Valid SAS" in r_valid
+
+    # 5. Boundary-specific vignetting check on X axis (limiting axis is X with z_vig ~ 34.04 m)
+    # Just below limiting distance: z = 33.0 m < 34.04 m -> valid
+    v_below, _, _ = check_sas_validity(wavelength, 33.0, nx, ny, dx, dy, padding=2)
+    assert v_below
+
+    # Just above limiting distance: z = 35.0 m > 34.04 m -> invalid due to X-axis vignetting
+    v_above, r_above, _ = check_sas_validity(wavelength, 35.0, nx, ny, dx, dy, padding=2)
+    assert not v_above
+    assert "Vignetting limit exceeded" in r_above
+
+    # 6. Swapped axes: Axis Y is now the limiting axis (Ny=128, dy=5 um, Nx=512, dx=10 um)
+    v_swap_above, r_swap_above, _ = check_sas_validity(wavelength, 35.0, ny, nx, dy, dx, padding=2)
+    assert not v_swap_above
+    assert "Vignetting limit exceeded" in r_swap_above
 

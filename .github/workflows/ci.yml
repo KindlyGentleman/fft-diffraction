@@ -37,6 +37,10 @@ jobs:
         run: |
           python -m pytest -v
 
+      - name: Verify test isolation (tests must not mutate tracked results)
+        run: |
+          git diff --exit-code -- results/
+
       - name: Run quick reproduction pipeline
         run: |
           python reproduce.py --quick
@@ -44,6 +48,33 @@ jobs:
       - name: Verify generated artifacts
         shell: bash
         run: |
-          test -f results/validation.json || (echo "validation.json missing" && exit 1)
-          test -f results/metrics.csv || (echo "metrics.csv missing" && exit 1)
-          python -c "import json; v = json.load(open('results/validation.json')); assert all(x['passed'] for x in v.values()), 'Validation checks failed'"
+          python -c "
+          import json, csv, os, sys
+          assert os.path.isfile('results/validation.json'), 'validation.json missing'
+          assert os.path.isfile('results/metrics.csv'), 'metrics.csv missing'
+
+          # 1. Validate validation.json
+          with open('results/validation.json', 'r') as f:
+              v = json.load(f)
+          assert len(v) >= 7, f'Expected at least 7 validation categories, got {len(v)}'
+          required_checks = [
+              'zero_distance_identity', 'circular_fraunhofer_airy',
+              'scalable_angular_spectrum_airy', 'rectangular_fraunhofer_sinc',
+              'near_field_direct_integration', 'thin_lens_focus', 'optical_vortex'
+          ]
+          for chk in required_checks:
+              assert chk in v, f'Missing required check: {chk}'
+              assert v[chk].get('passed') is True, f'Check {chk} did not pass: {v[chk]}'
+
+          # 2. Validate metrics.csv
+          with open('results/metrics.csv', 'r') as f:
+              reader = list(csv.DictReader(f))
+          assert len(reader) >= 20, f'Expected at least 20 metric rows in quick mode, got {len(reader)}'
+          required_cols = ['experiment', 'method', 'z_m', 'dx_source_m', 'relative_l2_error', 'valid']
+          for col in required_cols:
+              assert col in reader[0], f'Missing column in metrics.csv: {col}'
+          for r in reader:
+              assert r['experiment'] in ('method_selection_map', 'fixed_fov'), f'Unknown experiment: {r[\"experiment\"]}'
+              assert float(r['relative_l2_error']) >= 0.0, f'Negative error: {r}'
+          print('Artifact verification passed successfully.')
+          "

@@ -859,22 +859,26 @@ def check_sas_validity(
         return False, "Singular at z=0 (requires z > 0)", 0.0
 
     dqx, dqy, _, _ = sas_output_scaling(wavelength, z, nx, ny, dx, dy, padding=padding)
-    m = float(min(dqx / dx, dqy / dy))
+    mx = float(dqx / dx)
+    my = float(dqy / dy)
+    m = min(mx, my)
 
-    # Condition 1: Destination magnification must exceed unity for SAS advantage
-    # When M <= 1, chirp phase aliases on source grid and destination grid shrinks.
-    if m <= 1.0:
-        return False, f"Chirp aliased / grid shrinks: M={m:.2f} <= 1 (Std/BL-ASM preferred)", m
+    # Condition 1: Destination magnification must exceed unity on BOTH axes.
+    # When Mx <= 1 or My <= 1, chirp phase aliases along that axis and destination grid shrinks.
+    if mx <= 1.0 or my <= 1.0:
+        return False, f"Chirp aliased / grid shrinks: Mx={mx:.2f}, My={my:.2f} (min M={m:.2f} <= 1)", m
 
     # Condition 2: 2D vignetting distance limit evaluated for both dimensions (Heintzmann et al., Eq. 18)
     z_vignette_limits = []
     for n_dim, d_dim in [(nx, dx), (ny, dy)]:
         L_dim = n_dim * d_dim
         term = np.sqrt(L_dim**2 / (8.0 * L_dim**2 + n_dim**2 * wavelength**2))
+        num = -4.0 * L_dim * np.sqrt(8.0 * L_dim**2 / n_dim**2 + wavelength**2) * term
         denom = wavelength * (-1.0 + 2.0 * np.sqrt(2.0) * term)
-        if denom > 0:
-            z_vig = float(abs(-4.0 * L_dim * np.sqrt(8.0 * L_dim**2 / n_dim**2 + wavelength**2) * term / denom))
-            z_vignette_limits.append(z_vig)
+        if abs(denom) > 1e-18:
+            z_vig = float(num / denom)
+            if z_vig > 0:
+                z_vignette_limits.append(z_vig)
 
     if z_vignette_limits:
         z_vignette_min = min(z_vignette_limits)

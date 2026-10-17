@@ -442,8 +442,10 @@ def generate_fig04_method_selection_map(
     from matplotlib.patches import Patch
 
     if metrics_data is not None:
-        filtered = [r for r in metrics_data if r.get("experiment", "method_selection_map") == "method_selection_map"]
-        metrics_data = filtered if filtered else metrics_data
+        filtered = [r for r in metrics_data if r.get("experiment") == "method_selection_map"]
+        if not filtered:
+            raise ValueError("No valid 'method_selection_map' records found in provided metrics_data.")
+        metrics_data = filtered
     elif os.path.exists("results/metrics.csv"):
         import csv
         with open("results/metrics.csv", "r", encoding="utf-8") as f:
@@ -456,14 +458,21 @@ def generate_fig04_method_selection_map(
         from reproduce import run_method_selection_sweep
         metrics_data = run_method_selection_sweep(quick=quick)
 
-    # Validate uniqueness of (method, dx, z) cells
-    seen_cells = set()
+    # Validate uniqueness and detect conflicting duplicate (method, dx, z) cells
+    seen_cells = {}
     deduped_data = []
     for r in metrics_data:
-        key = (r.get("method"), round(float(r["dx_source_m"]), 10), round(float(r["z_m"]), 8))
+        m_name = r.get("method")
+        if not m_name or "dx_source_m" not in r or "z_m" not in r:
+            raise ValueError(f"Malformed metric record missing required keys: {r}")
+        key = (m_name, round(float(r["dx_source_m"]), 10), round(float(r["z_m"]), 8))
+        err_val = float(r.get("relative_l2_error", float("nan")))
         if key in seen_cells:
+            prev_err = seen_cells[key]
+            if np.isfinite(err_val) and np.isfinite(prev_err) and abs(err_val - prev_err) > 1e-4:
+                raise ValueError(f"Conflicting duplicate benchmark records for {key}: err1={prev_err}, err2={err_val}")
             continue
-        seen_cells.add(key)
+        seen_cells[key] = err_val
         deduped_data.append(r)
     metrics_data = deduped_data
 
@@ -485,20 +494,27 @@ def generate_fig04_method_selection_map(
     ref_unc_map = np.full((ndx, nz), 0.005)
     mag_map = np.full((ndx, nz), 1.0)
 
+    def _parse_strict_bool(val: Any) -> bool:
+        if val is None or val == "":
+            return False
+        if isinstance(val, bool):
+            return val
+        s = str(val).strip().lower()
+        return s in ("true", "1", "yes")
+
     for r in metrics_data:
         m = r["method"]
         if m in methods:
             iz = z_indices[float(r["z_m"])]
             idx = dx_indices[float(r["dx_source_m"])]
-            err = float(r["relative_l2_error"])
+            err = float(r.get("relative_l2_error", float("nan")))
             err_maps[m][idx, iz] = err
-            runtime_maps[m][idx, iz] = float(r["runtime_s"])
-            val = str(r.get("valid", "True")).lower() == "true"
-            valid_maps[m][idx, iz] = val
-            cov = str(r.get("sufficient_coverage", "True")).lower() == "true"
-            cov_maps[m][idx, iz] = cov
-            ref_c = str(r.get("reference_converged", "True")).lower() == "true"
-            ref_conv_map[idx, iz] = ref_c
+            runtime_maps[m][idx, iz] = float(r.get("runtime_s", float("nan")))
+
+            # Explicit boolean parsing - never default missing to True
+            valid_maps[m][idx, iz] = _parse_strict_bool(r.get("valid"))
+            cov_maps[m][idx, iz] = _parse_strict_bool(r.get("sufficient_coverage"))
+            ref_conv_map[idx, iz] = _parse_strict_bool(r.get("reference_converged"))
             ref_unc_map[idx, iz] = float(r.get("ref_uncertainty", 0.005))
             if m == "sas":
                 mag_val = float(r.get("magnification", float(r["dx_output_m"]) / float(r["dx_source_m"])))
@@ -522,8 +538,13 @@ def generate_fig04_method_selection_map(
             if candidates:
                 candidates.sort()
                 best_err, best_m = candidates[0]
-                margin = max(0.005, ref_unc_map[idx, iz])
-                tied = [m_idx for e, m_idx in candidates if abs(e - best_err) <= margin]
+                unc = ref_unc_map[idx, iz]
+                # Scientifically justified equivalence: error difference within reference uncertainty
+                # AND within 5% relative difference (or 1e-4 absolute tolerance)
+                tied = [
+                    m_idx for e, m_idx in candidates
+                    if abs(e - best_err) <= unc and (abs(e - best_err) / max(best_err, 1e-6) <= 0.05 or abs(e - best_err) <= 1e-4)
+                ]
                 if len(tied) > 1:
                     best_map[idx, iz] = 4
                 else:
@@ -532,9 +553,10 @@ def generate_fig04_method_selection_map(
                 best_map[idx, iz] = 5
 
     valid_errs = [e for m in methods for e in err_maps[m].ravel() if np.isfinite(e) and e > 0]
-    vmin_err = max(1e-4, min(valid_errs)) if valid_errs else 0.001
+    vmin_err = max(1e-5, min(valid_errs)) if valid_errs else 1e-4
     norm_err = LogNorm(vmin=vmin_err, vmax=1.0)
-    cmap_err = "viridis"
+    cmap_err = plt.get_cmap("viridis").copy()
+    cmap_err.set_under("#2b004a")
 
     fig = plt.figure(figsize=(7.16, 5.2), dpi=dpi)
     gs = GridSpec(2, 3, figure=fig, hspace=0.52, wspace=0.32)

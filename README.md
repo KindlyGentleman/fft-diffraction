@@ -69,7 +69,7 @@ Each numerical implementation involves distinct trade-offs. None is universally 
 4. **Scalable Angular Spectrum (SAS)**: Heintzmann, Lötgering, and Wechsler (2023) [R1] combine non-paraxial phase difference precompensation with a scaled single-step Fresnel transform using three FFT operations:
    $$\Delta x_d = \frac{\lambda z}{p N \Delta x_s}, \qquad S_{x,\mathrm{out}} = N \Delta x_d$$
    - *Advantage:* Naturally expands observation coordinates with distance, tracking broad far-field distributions on an unpadded $N \times N$ cropped grid without requiring massive zero-padding.
-   - *Limitations:* Requires three successive 2D FFTs. Subject to strict validity conditions: destination magnification $M = \max(M_x, M_y)$ must exceed unity ($M > 1$); when $M \le 1$, the destination grid shrinks and source chirp phase aliases, making fixed-grid BL-ASM preferable. Additionally, SAS is singular at $z = 0$ (handled via an explicit branch identity return) and bounded by a 2D upper vignetting limit $z_{\mathrm{vignetting}} = \min(z_{\mathrm{vig},x}, z_{\mathrm{vig},y})$ evaluating both coordinate axes independently.
+   - *Limitations:* Requires three successive 2D FFTs. Subject to strict validity conditions: destination magnification $M = \min(M_x, M_y)$ must exceed unity ($M_x > 1$ and $M_y > 1$); when either axis satisfies $M \le 1$, the destination grid along that axis shrinks and source chirp phase aliases, making fixed-grid BL-ASM preferable. Additionally, SAS is singular at $z = 0$ (handled via an explicit branch identity return) and bounded by a 2D upper vignetting limit $z_{\mathrm{vignetting}} = \min(z_{\mathrm{vig},x}, z_{\mathrm{vig},y})$ evaluating both coordinate axes independently.
 
 ---
 
@@ -110,8 +110,8 @@ Diffraction fields were quantitatively verified against analytical solutions at 
 
 - **Airy Dark Ring Radius**: Analytical first zero is $r_1 = 1.081$ mm. Measured positions are $r_1 = 1.088$ mm for BL-ASM ($0.61\%$ discrepancy) and $r_1 = 1.086$ mm for SAS ($0.44\%$ discrepancy).
 - **Airy Radial Profile**: Relative $L_2$ error compared to analytical $J_1(q)/q$ is $1.62\%$ for BL-ASM across the fixed window and $0.36\%$ for SAS across the scaled window.
-- **Rectangular Sinc Cross-Sections**: Horizontal slice error is $1.89\%$ and vertical slice error is $2.76\%$ against theoretical $\mathrm{sinc}^2$ profiles.
-- **Near-Field Independent Benchmark**: At $z = 0.005$ m (where Fraunhofer approximations are invalid), BL-ASM was verified against independent Rayleigh-Sommerfeld direct numerical integration, agreeing within $3.89\%$.
+- **Rectangular Sinc Cross-Sections**: Horizontal slice error is $1.65\%$ and vertical slice error is $2.64\%$ against theoretical $\mathrm{sinc}^2$ profiles.
+- **Near-Field Independent Benchmark**: At $z = 0.005$ m (where Fraunhofer approximations are invalid), BL-ASM was verified against independent Rayleigh-Sommerfeld direct numerical integration, agreeing within $3.89\%$ intensity relative $L_2$ error and $7.81\%$ globally phase-aligned complex-field error ($\Delta \phi = -0.0034$ rad).
 
 ---
 
@@ -189,8 +189,8 @@ Summary of automated physical validation benchmarks:
 | Airy radial profile | BL-ASM | $0.50$ m | Analytical Airy $J_1(q)/q$ | Full fixed FOV | $1.62\%$ | Pass |
 | Airy dark ring radius | SAS | $0.50$ m | $r_1 = 1.081$ mm | $r_{1,\mathrm{meas}} = 1.086$ mm | $0.44\%$ | Pass |
 | Airy radial profile | SAS | $0.50$ m | Analytical Airy $J_1(q)/q$ | Full scaled FOV | $0.36\%$ | Pass |
-| Sinc cross-sections | BL-ASM | $0.50$ m | Analytical 2D $\mathrm{sinc}^2$ | $x$-slice / $y$-slice | $1.89\% / 2.76\%$ | Pass |
-| Near-field cross-check | BL-ASM | $0.005$ m | Rayleigh-Sommerfeld direct | Central active subgrid | $3.89\%$ | Pass |
+| Sinc cross-sections | BL-ASM | $0.50$ m | Analytical 2D $\mathrm{sinc}^2$ | $x$-slice / $y$-slice | $1.65\% / 2.64\%$ | Pass |
+| Near-field cross-check | BL-ASM | $0.005$ m | Rayleigh-Sommerfeld direct | Central active subgrid | $3.89\%$ (int.) / $7.81\%$ (complex) | Pass |
 | Thin-lens focus position | BL-ASM | Focus | $z_f = 73.5356$ mm (ABCD theory) | $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0100$ mm | $0.0008\%$ | Pass |
 | Focused beam waist | BL-ASM | Focus | $w_0' = 41.920\,\mu$m (ABCD theory) | $w_{0,\mathrm{meas}}' = 41.920 \pm 0.100\,\mu$m | $< 0.0001\%$ | Pass |
 | Vortex charge $\ell = 1$ | BL-ASM | $0.20$ m | Topological charge $Q = 1.0$ | $Q_{\mathrm{meas}} = 1.000$ | $0.00\%$ | Pass |
