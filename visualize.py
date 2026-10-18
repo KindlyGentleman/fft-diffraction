@@ -51,6 +51,7 @@ from diffraction import (
     gaussian_beam_abcd,
     check_sas_validity,
     measure_beam_radius,
+    characterize_thin_lens_focus,
 )
 
 # Apply IEEE publication style
@@ -78,13 +79,40 @@ COLORS = {
 }
 
 
+def _resolve_asset_paths(
+    output_png: Optional[str],
+    output_pdf: Optional[str],
+    basename: str,
+    asset_dir: Optional[str] = None,
+) -> Tuple[str, str]:
+    if asset_dir is not None:
+        png_path = os.path.join(asset_dir, f"{basename}.png") if output_png is None or output_png == f"assets/{basename}.png" else output_png
+        pdf_path = os.path.join(asset_dir, f"{basename}.pdf") if output_pdf is None or output_pdf == f"assets/{basename}.pdf" else output_pdf
+    else:
+        png_path = f"assets/{basename}.png" if output_png is None else output_png
+        pdf_path = f"assets/{basename}.pdf" if output_pdf is None else output_pdf
+    os.makedirs(os.path.dirname(png_path), exist_ok=True)
+    os.makedirs(os.path.dirname(pdf_path), exist_ok=True)
+    return png_path, pdf_path
+
+
+def _resolve_gif_path(output_gif: Optional[str], basename: str, asset_dir: Optional[str] = None) -> str:
+    if asset_dir is not None:
+        gif_path = os.path.join(asset_dir, f"{basename}.gif") if output_gif is None or output_gif == f"assets/{basename}.gif" else output_gif
+    else:
+        gif_path = f"assets/{basename}.gif" if output_gif is None else output_gif
+    os.makedirs(os.path.dirname(gif_path), exist_ok=True)
+    return gif_path
+
+
 def generate_fig01_aperture_diffraction(
     output_png: str = "assets/fig01_aperture_diffraction.png",
     output_pdf: str = "assets/fig01_aperture_diffraction.pdf",
+    asset_dir: Optional[str] = None,
     dpi: int = 400,
 ) -> None:
     """Generate Figure 1: 2x2 grid of input apertures aligned above diffraction fields."""
-    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    output_png, output_pdf = _resolve_asset_paths(output_png, output_pdf, "fig01_aperture_diffraction", asset_dir=asset_dir)
 
     nx, ny = 512, 512
     dx, dy = 5e-6, 5e-6
@@ -153,10 +181,11 @@ def generate_fig01_aperture_diffraction(
 def generate_fig02_methods_errors(
     output_png: str = "assets/fig02_methods_errors.png",
     output_pdf: str = "assets/fig02_methods_errors.pdf",
+    asset_dir: Optional[str] = None,
     dpi: int = 400,
 ) -> None:
     """Generate Figure 2: Fair 2x4 comparison of Fresnel, ASM, BL-ASM, and SAS with error maps."""
-    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    output_png, output_pdf = _resolve_asset_paths(output_png, output_pdf, "fig02_methods_errors", asset_dir=asset_dir)
 
     nx, ny = 512, 512
     dx, dy = 5e-6, 5e-6
@@ -298,10 +327,11 @@ def generate_fig02_methods_errors(
 def generate_fig03_results_profiles(
     output_png: str = "assets/fig03_results_profiles.png",
     output_pdf: str = "assets/fig03_results_profiles.pdf",
+    asset_dir: Optional[str] = None,
     dpi: int = 400,
 ) -> None:
     """Generate Figure 3: Analytical Fraunhofer validation with quantitative profiles."""
-    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    output_png, output_pdf = _resolve_asset_paths(output_png, output_pdf, "fig03_results_profiles", asset_dir=asset_dir)
 
     nx, ny = 512, 512
     dx, dy = 5e-6, 5e-6
@@ -433,11 +463,12 @@ def generate_fig04_method_selection_map(
     metrics_data: Optional[List[Dict[str, Any]]] = None,
     output_png: str = "assets/fig04_method_selection_map.png",
     output_pdf: str = "assets/fig04_method_selection_map.pdf",
+    asset_dir: Optional[str] = None,
     dpi: int = 400,
     quick: bool = False,
 ) -> None:
     """Generate Figure 4: 2x3 propagation method selection map across distance and sampling."""
-    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    output_png, output_pdf = _resolve_asset_paths(output_png, output_pdf, "fig04_method_selection_map", asset_dir=asset_dir)
     from matplotlib.colors import LogNorm, ListedColormap
     from matplotlib.patches import Patch
 
@@ -458,6 +489,14 @@ def generate_fig04_method_selection_map(
         from reproduce import run_method_selection_sweep
         metrics_data = run_method_selection_sweep(quick=quick)
 
+    def _parse_strict_bool(val: Any) -> bool:
+        if val is None or val == "":
+            return False
+        if isinstance(val, bool):
+            return val
+        s = str(val).strip().lower()
+        return s in ("true", "1", "yes")
+
     # Validate uniqueness and detect conflicting duplicate (method, dx, z) cells
     seen_cells = {}
     deduped_data = []
@@ -467,12 +506,31 @@ def generate_fig04_method_selection_map(
             raise ValueError(f"Malformed metric record missing required keys: {r}")
         key = (m_name, round(float(r["dx_source_m"]), 10), round(float(r["z_m"]), 8))
         err_val = float(r.get("relative_l2_error", float("nan")))
+        cur_valid = _parse_strict_bool(r.get("valid"))
+        cur_cov = _parse_strict_bool(r.get("sufficient_coverage"))
+        cur_ref_conv = _parse_strict_bool(r.get("reference_converged"))
+        cur_unc = float(r.get("ref_uncertainty", 0.005))
         if key in seen_cells:
-            prev_err = seen_cells[key]
-            if np.isfinite(err_val) and np.isfinite(prev_err) and abs(err_val - prev_err) > 1e-4:
-                raise ValueError(f"Conflicting duplicate benchmark records for {key}: err1={prev_err}, err2={err_val}")
+            prev = seen_cells[key]
+            conflicts = []
+            if np.isfinite(err_val) and np.isfinite(prev["err"]) and abs(err_val - prev["err"]) > 1e-4:
+                conflicts.append(f"relative_l2_error ({prev['err']} vs {err_val})")
+            if cur_valid != prev["valid"]:
+                conflicts.append(f"valid ({prev['valid']} vs {cur_valid})")
+            if cur_cov != prev["cov"]:
+                conflicts.append(f"sufficient_coverage ({prev['cov']} vs {cur_cov})")
+            if cur_ref_conv != prev["ref_conv"]:
+                conflicts.append(f"reference_converged ({prev['ref_conv']} vs {cur_ref_conv})")
+            if conflicts:
+                raise ValueError(f"Conflicting duplicate benchmark records for {key}: {', '.join(conflicts)}")
             continue
-        seen_cells[key] = err_val
+        seen_cells[key] = {
+            "err": err_val,
+            "valid": cur_valid,
+            "cov": cur_cov,
+            "ref_conv": cur_ref_conv,
+            "unc": cur_unc,
+        }
         deduped_data.append(r)
     metrics_data = deduped_data
 
@@ -533,8 +591,9 @@ def generate_fig04_method_selection_map(
                 continue
             candidates = []
             for mi, m in enumerate(methods):
-                if valid_maps[m][idx, iz] and cov_maps[m][idx, iz] and not np.isnan(err_maps[m][idx, iz]):
-                    candidates.append((err_maps[m][idx, iz], mi))
+                err = err_maps[m][idx, iz]
+                if valid_maps[m][idx, iz] and cov_maps[m][idx, iz] and np.isfinite(err) and err >= 0:
+                    candidates.append((err, mi))
             if candidates:
                 candidates.sort()
                 best_err, best_m = candidates[0]
@@ -557,6 +616,7 @@ def generate_fig04_method_selection_map(
     norm_err = LogNorm(vmin=vmin_err, vmax=1.0)
     cmap_err = plt.get_cmap("viridis").copy()
     cmap_err.set_under("#2b004a")
+    cmap_err.set_over("#fde725")
 
     fig = plt.figure(figsize=(7.16, 5.2), dpi=dpi)
     gs = GridSpec(2, 3, figure=fig, hspace=0.52, wspace=0.32)
@@ -615,7 +675,7 @@ def generate_fig04_method_selection_map(
                     ax.add_patch(Rectangle((iz - 0.5, idx - 0.5), 1, 1, fill=False, hatch="..", edgecolor="#7570b3", lw=0.4))
 
     cax = fig.add_axes([0.18, 0.94, 0.32, 0.018])
-    cbar = fig.colorbar(im, cax=cax, orientation="horizontal")
+    cbar = fig.colorbar(im, cax=cax, orientation="horizontal", extend="both")
     cbar.set_label("Relative $L_2$ Error Norm $\\epsilon_{L_2}$", fontsize=6.5)
     cbar.ax.tick_params(labelsize=5.5)
 
@@ -642,7 +702,7 @@ def generate_fig04_method_selection_map(
         Patch(facecolor="#386cb0", label="Std ASM"),
         Patch(facecolor="#1b9e77", label="BL-ASM"),
         Patch(facecolor="#7570b3", label="SAS"),
-        Patch(facecolor="#4daf4a", label="Tie ($<0.5\\%$)"),
+        Patch(facecolor="#4daf4a", label="Equiv. ($\\Delta \\epsilon \\leq u_{\\mathrm{ref}}$)"),
         Patch(facecolor="#fee08b", hatch="..", label="Low FOV"),
         Patch(facecolor="#888888", hatch="\\\\\\\\", label="Unresolved"),
     ]
@@ -699,11 +759,12 @@ def generate_fig05_thin_lens_focus(
     lens_data: Optional[Dict[str, Any]] = None,
     output_png: str = "assets/fig05_thin_lens_focus.png",
     output_pdf: str = "assets/fig05_thin_lens_focus.pdf",
+    asset_dir: Optional[str] = None,
     dpi: int = 400,
     quick: bool = False,
 ) -> None:
     """Generate Figure 5: 2x3 Gaussian beam focusing through an ideal thin lens."""
-    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    output_png, output_pdf = _resolve_asset_paths(output_png, output_pdf, "fig05_thin_lens_focus", asset_dir=asset_dir)
 
     nx, ny = (256, 256) if quick else (512, 512)
     dx, dy = 5e-6, 5e-6
@@ -724,22 +785,23 @@ def generate_fig05_thin_lens_focus(
         pos_err_pct = float(lens_data["focus_z_relative_error"]) * 100.0
         waist_err_pct = float(lens_data["waist_relative_error"]) * 100.0
     else:
-        # Measure continuously via local quadratic fit around the discrete minimum
-        z_dense = np.linspace(70.0e-3, 77.0e-3, 29 if quick else 71)
-        w_dense = []
-        for zi in z_dense:
-            uzi = propagate_blas(u_lens, wavelength, z=zi, dx=dx, dy=dy, padding=2)
-            wm = measure_beam_radius(np.abs(uzi)**2, grid.x, grid.y, roi_radius=4.0 * w_focus_theory)
-            w_dense.append(wm)
-        min_i = int(np.argmin(w_dense))
-        fit_sl = slice(max(0, min_i - 2), min(len(z_dense), min_i + 3))
-        p_fit = np.polyfit(z_dense[fit_sl], np.array(w_dense)[fit_sl], 2)
-        z_raw = float(-p_fit[1] / (2.0 * p_fit[0]))
-        w_raw = float(np.polyval(p_fit, z_raw))
-        z_focus_meas = float(np.round(z_raw, 5))
-        w_focus_meas = float(np.round(w_raw, 7))
-        pos_err_pct = abs(z_focus_meas - z_focus_theory) / z_focus_theory * 100.0
-        waist_err_pct = abs(w_focus_meas - w_focus_theory) / w_focus_theory * 100.0
+        # Measure continuously via shared unified routine without pre-rounding
+        res = characterize_thin_lens_focus(
+            w0=w0,
+            wavelength=wavelength,
+            focal_length=focal_length,
+            nx=nx,
+            ny=ny,
+            dx=dx,
+            dy=dy,
+            z_scan_min=70.0e-3,
+            z_scan_max=77.0e-3,
+            n_z_samples=29 if quick else 71,
+        )
+        z_focus_meas = float(res["focus_z_measured_m"])
+        w_focus_meas = float(res["waist_measured_m"])
+        pos_err_pct = float(res["focus_z_relative_error"]) * 100.0
+        waist_err_pct = float(res["waist_relative_error"]) * 100.0
 
     z_min, z_max = 10e-3, 140e-3
     nz_steps = 30 if quick else 90
@@ -863,11 +925,12 @@ def generate_fig06_vortex_beam(
     vortex_data: Optional[Dict[str, Any]] = None,
     output_png: str = "assets/fig06_vortex_beam.png",
     output_pdf: str = "assets/fig06_vortex_beam.pdf",
+    asset_dir: Optional[str] = None,
     dpi: int = 400,
     quick: bool = False,
 ) -> None:
     """Generate Figure 6: 2x3 optical vortex beam and topological charge conservation."""
-    os.makedirs(os.path.dirname(output_png), exist_ok=True)
+    output_png, output_pdf = _resolve_asset_paths(output_png, output_pdf, "fig06_vortex_beam", asset_dir=asset_dir)
     from scipy.interpolate import RegularGridInterpolator
 
     nx, ny = (256, 256) if quick else (512, 512)
@@ -1027,11 +1090,12 @@ def generate_fig06_vortex_beam(
 
 def generate_primary_loop_gif(
     output_gif: str = "assets/diffraction_loop.gif",
+    asset_dir: Optional[str] = None,
     num_steps: int = 36,
     fps: int = 14,
 ) -> int:
     """Generate primary seamless 2x2 loop GIF: Static apertures above evolving diffraction fields."""
-    os.makedirs(os.path.dirname(output_gif), exist_ok=True)
+    output_gif = _resolve_gif_path(output_gif, "diffraction_loop", asset_dir=asset_dir)
 
     nx, ny = 256, 256
     dx, dy = 6e-6, 6e-6
@@ -1113,11 +1177,12 @@ def generate_primary_loop_gif(
 
 def generate_error_loop_gif(
     output_gif: str = "assets/error_loop.gif",
+    asset_dir: Optional[str] = None,
     num_steps: int = 28,
     fps: int = 12,
 ) -> int:
     """Generate secondary 2x2 loop GIF: Standard ASM vs SAS intensity and error evolution."""
-    os.makedirs(os.path.dirname(output_gif), exist_ok=True)
+    output_gif = _resolve_gif_path(output_gif, "error_loop", asset_dir=asset_dir)
 
     nx, ny = 256, 256
     dx, dy = 6e-6, 6e-6

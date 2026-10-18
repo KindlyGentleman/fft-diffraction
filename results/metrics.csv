@@ -1,293 +1,293 @@
-experiment,N,method,z_m,dx_source_m,dx_output_m,source_fov_m,output_fov_m,magnification,common_width_m,coverage_ratio,coverage_2d,captured_power_ratio,sufficient_coverage,relative_l2_error,peak_normalized_error,runtime_s,valid,sas_reason,reference_converged,ref_type,ref_uncertainty
-method_selection_map,512,fresnel,0.005,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9998,True,0.002696,0.003121,0.184996,True,Valid Fresnel,True,near_field_asm_4x,0.00011
-method_selection_map,512,asm,0.005,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9998,True,0.000104,0.00013,0.258682,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.00011
-method_selection_map,512,blas,0.005,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9998,True,0.000104,0.00013,0.231905,True,Valid band-limited spectrum,True,near_field_asm_4x,0.00011
-method_selection_map,512,sas,0.005,2.5e-06,1.04e-06,0.00128,0.000532,0.4156,0.000531,0.4156,0.1727,0.9924,False,0.010292,0.013142,0.472283,False,"Chirp aliased / grid shrinks: Mx=0.42, My=0.42 (min M=0.42 <= 1)",True,near_field_asm_4x,0.00011
-method_selection_map,512,fresnel,0.007516,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9979,True,0.001307,0.001521,0.228685,True,Valid Fresnel,True,near_field_asm_4x,0.000215
-method_selection_map,512,asm,0.007516,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9979,True,0.000169,0.000263,0.232082,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000215
-method_selection_map,512,blas,0.007516,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9979,True,0.000169,0.000263,0.28158,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000215
-method_selection_map,512,sas,0.007516,2.5e-06,1.56e-06,0.00128,0.0008,0.6247,0.000798,0.6247,0.3903,0.9938,False,0.005528,0.007711,0.53136,False,"Chirp aliased / grid shrinks: Mx=0.62, My=0.62 (min M=0.62 <= 1)",True,near_field_asm_4x,0.000215
-method_selection_map,512,fresnel,0.011297,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9948,True,0.000547,0.000549,0.224731,True,Valid Fresnel,True,near_field_asm_4x,0.000422
-method_selection_map,512,asm,0.011297,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9948,True,0.000239,0.000254,0.194026,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000422
-method_selection_map,512,blas,0.011297,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9948,True,0.000239,0.000254,0.23722,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000422
-method_selection_map,512,sas,0.011297,2.5e-06,2.35e-06,0.00128,0.001202,0.9391,0.0012,0.9391,0.8819,0.9943,False,0.002267,0.0038,0.529852,False,"Chirp aliased / grid shrinks: Mx=0.94, My=0.94 (min M=0.94 <= 1)",True,near_field_asm_4x,0.000422
-method_selection_map,512,fresnel,0.016982,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9914,True,0.000312,0.000401,0.185287,True,Valid Fresnel,True,near_field_asm_4x,0.001082
-method_selection_map,512,asm,0.016982,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9914,True,0.000494,0.000495,0.19547,False,Chirp aliased (z > z_c=12 mm),True,near_field_asm_4x,0.001082
-method_selection_map,512,blas,0.016982,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9914,True,0.000224,0.000234,0.202127,True,Valid band-limited spectrum,True,near_field_asm_4x,0.001082
-method_selection_map,512,sas,0.016982,2.5e-06,3.53e-06,0.00128,0.001807,1.4116,0.001803,1.0,1.0,0.9945,True,0.002116,0.002182,0.513024,True,Valid SAS regime (M=1.41 > 1),True,near_field_asm_4x,0.001082
-method_selection_map,512,fresnel,0.025526,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9873,True,0.007188,0.007787,0.191951,False,Transfer-function aliased,True,intermediate_blas_4x,0.000358
-method_selection_map,512,asm,0.025526,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9873,True,0.007834,0.009748,0.299176,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.000358
-method_selection_map,512,blas,0.025526,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9873,True,0.000209,0.000219,0.217639,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000358
-method_selection_map,512,sas,0.025526,2.5e-06,5.3e-06,0.00128,0.002716,2.1218,0.002711,1.0,1.0,0.9952,True,0.005189,0.007371,0.628742,True,Valid SAS regime (M=2.12 > 1),True,intermediate_blas_4x,0.000358
-method_selection_map,512,fresnel,0.038369,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9834,True,0.009321,0.009187,0.24071,False,Transfer-function aliased,True,intermediate_blas_4x,0.001661
-method_selection_map,512,asm,0.038369,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9834,True,0.009148,0.009304,0.2913,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.001661
-method_selection_map,512,blas,0.038369,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9834,True,0.00077,0.001036,0.259971,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001661
-method_selection_map,512,sas,0.038369,2.5e-06,7.97e-06,0.00128,0.004082,3.1894,0.004074,1.0,1.0,0.9983,True,0.005749,0.007083,0.484626,True,Valid SAS regime (M=3.19 > 1),True,intermediate_blas_4x,0.001661
-method_selection_map,512,fresnel,0.057675,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.976,True,0.014213,0.014228,0.200998,False,Transfer-function aliased,True,intermediate_blas_4x,0.001024
-method_selection_map,512,asm,0.057675,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.976,True,0.013357,0.017041,0.216603,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.001024
-method_selection_map,512,blas,0.057675,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.976,True,0.000964,0.001169,0.236694,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001024
-method_selection_map,512,sas,0.057675,2.5e-06,1.199e-05,0.00128,0.006137,4.7942,0.005118,1.0,1.0,1.0,True,0.010289,0.008736,0.495399,True,Valid SAS regime (M=4.79 > 1),True,intermediate_blas_4x,0.001024
-method_selection_map,512,fresnel,0.086693,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9644,True,0.018977,0.018965,0.235671,False,Transfer-function aliased,True,intermediate_blas_4x,0.001466
-method_selection_map,512,asm,0.086693,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9644,True,0.018662,0.019418,0.264556,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.001466
-method_selection_map,512,blas,0.086693,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9644,True,0.00102,0.001038,0.225531,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001466
-method_selection_map,512,sas,0.086693,2.5e-06,1.802e-05,0.00128,0.009224,7.2064,0.005118,1.0,1.0,1.0,True,0.007799,0.008525,0.500787,True,Valid SAS regime (M=7.21 > 1),True,intermediate_blas_4x,0.001466
-method_selection_map,512,fresnel,0.130313,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9476,True,0.035987,0.066821,0.217436,False,Transfer-function aliased,True,intermediate_blas_4x,0.003944
-method_selection_map,512,asm,0.130313,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9476,True,0.034093,0.050163,0.210354,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.003944
-method_selection_map,512,blas,0.130313,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9476,True,0.00364,0.006138,0.231416,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.003944
-method_selection_map,512,sas,0.130313,2.5e-06,2.708e-05,0.00128,0.013865,10.8323,0.005118,1.0,1.0,1.0,True,0.011145,0.012518,0.476542,True,Valid SAS regime (M=10.83 > 1),True,intermediate_blas_4x,0.003944
-method_selection_map,512,fresnel,0.19588,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9234,True,0.04934,0.094345,0.206113,False,Transfer-function aliased,True,intermediate_blas_4x,0.012526
-method_selection_map,512,asm,0.19588,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9234,True,0.047255,0.075107,0.24546,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.012526
-method_selection_map,512,blas,0.19588,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9234,True,0.011463,0.022851,0.228994,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.012526
-method_selection_map,512,sas,0.19588,2.5e-06,4.071e-05,0.00128,0.020842,16.2826,0.005118,1.0,1.0,1.0,True,0.010169,0.012468,0.570998,True,Valid SAS regime (M=16.28 > 1),True,intermediate_blas_4x,0.012526
-method_selection_map,512,fresnel,0.294437,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.8702,True,0.120666,0.201784,0.266591,False,Transfer-function aliased,True,intermediate_blas_4x,0.014703
-method_selection_map,512,asm,0.294437,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.8702,True,0.119343,0.207955,0.214734,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.014703
-method_selection_map,512,blas,0.294437,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.8702,True,0.011235,0.01187,0.234659,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.014703
-method_selection_map,512,sas,0.294437,2.5e-06,6.119e-05,0.00128,0.031328,24.4751,0.005118,1.0,1.0,1.0,True,0.011559,0.009939,0.672754,True,Valid SAS regime (M=24.48 > 1),True,intermediate_blas_4x,0.014703
-method_selection_map,512,fresnel,0.442584,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.6684,0.4468,0.8456,False,0.160164,0.241544,0.243164,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.442584,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.6684,0.4468,0.8456,False,0.158838,0.227789,0.271126,False,Chirp aliased (z > z_c=12 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.442584,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.6684,0.4468,0.8456,False,0.059935,0.065173,0.268259,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.442584,2.5e-06,9.197e-05,0.00128,0.047091,36.7898,0.005118,1.0,1.0,1.0,True,0.016305,0.011423,1.209399,True,Valid SAS regime (M=36.79 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.66527,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.4447,0.1977,0.6379,False,0.367933,0.434136,0.49853,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.66527,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.4447,0.1977,0.6379,False,0.37046,0.447774,0.545239,False,Chirp aliased (z > z_c=12 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.66527,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.4447,0.1977,0.6379,False,0.028753,0.062771,0.584736,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.66527,2.5e-06,0.00013825,0.00128,0.070785,55.3005,0.005118,1.0,1.0,1.0,True,0.012695,0.009628,1.28712,True,Valid SAS regime (M=55.30 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,1.0,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.2958,0.0875,0.3844,False,0.447754,0.579006,0.461518,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,1.0,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.2958,0.0875,0.3844,False,0.446109,0.539815,0.503771,False,Chirp aliased (z > z_c=12 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,1.0,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.2958,0.0875,0.3844,False,0.224817,0.289406,0.545836,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,1.0,2.5e-06,0.00020781,0.00128,0.1064,83.125,0.005118,1.0,1.0,1.0,True,0.011261,0.009128,1.239644,True,Valid SAS regime (M=83.12 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.005,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,0.001615,0.001655,0.483126,True,Valid Fresnel,True,near_field_asm_4x,3.8e-05
-method_selection_map,512,asm,0.005,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,3.5e-05,3.6e-05,0.566952,True,Valid fixed-grid ASM,True,near_field_asm_4x,3.8e-05
-method_selection_map,512,blas,0.005,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,3.5e-05,3.6e-05,0.55583,True,Valid band-limited spectrum,True,near_field_asm_4x,3.8e-05
-method_selection_map,512,sas,0.005,5e-06,5.2e-07,0.00256,0.000266,0.1039,0.000265,0.1039,0.0108,0.9046,False,0.045422,0.048544,1.281626,False,"Chirp aliased / grid shrinks: Mx=0.10, My=0.10 (min M=0.10 <= 1)",True,near_field_asm_4x,3.8e-05
-method_selection_map,512,fresnel,0.007516,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,0.000942,0.000955,0.493406,True,Valid Fresnel,True,near_field_asm_4x,5.5e-05
-method_selection_map,512,asm,0.007516,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,3.8e-05,6.1e-05,0.491221,True,Valid fixed-grid ASM,True,near_field_asm_4x,5.5e-05
-method_selection_map,512,blas,0.007516,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,3.8e-05,6.1e-05,0.499574,True,Valid band-limited spectrum,True,near_field_asm_4x,5.5e-05
-method_selection_map,512,sas,0.007516,5e-06,7.8e-07,0.00256,0.0004,0.1562,0.000399,0.1562,0.0244,0.9779,False,0.026801,0.030347,1.178866,False,"Chirp aliased / grid shrinks: Mx=0.16, My=0.16 (min M=0.16 <= 1)",True,near_field_asm_4x,5.5e-05
-method_selection_map,512,fresnel,0.011297,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,0.000519,0.00075,0.446884,True,Valid Fresnel,True,near_field_asm_4x,6.8e-05
-method_selection_map,512,asm,0.011297,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,5.1e-05,7.5e-05,0.504548,True,Valid fixed-grid ASM,True,near_field_asm_4x,6.8e-05
-method_selection_map,512,blas,0.011297,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,5.1e-05,7.5e-05,0.552055,True,Valid band-limited spectrum,True,near_field_asm_4x,6.8e-05
-method_selection_map,512,sas,0.011297,5e-06,1.17e-06,0.00256,0.000601,0.2348,0.0006,0.2348,0.0551,0.9862,False,0.014703,0.014555,1.185993,False,"Chirp aliased / grid shrinks: Mx=0.23, My=0.23 (min M=0.23 <= 1)",True,near_field_asm_4x,6.8e-05
-method_selection_map,512,fresnel,0.016982,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,0.000321,0.00035,0.492824,True,Valid Fresnel,True,near_field_asm_4x,0.000202
-method_selection_map,512,asm,0.016982,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,0.000108,0.000138,0.545049,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000202
-method_selection_map,512,blas,0.016982,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,True,0.000108,0.000138,0.559929,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000202
-method_selection_map,512,sas,0.016982,5e-06,1.76e-06,0.00256,0.000903,0.3529,0.000902,0.3529,0.1245,0.988,False,0.007266,0.008495,1.198475,False,"Chirp aliased / grid shrinks: Mx=0.35, My=0.35 (min M=0.35 <= 1)",True,near_field_asm_4x,0.000202
-method_selection_map,512,fresnel,0.025526,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9985,True,0.000228,0.00023,0.445598,True,Valid Fresnel,True,near_field_asm_4x,0.000132
-method_selection_map,512,asm,0.025526,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9985,True,8.5e-05,8.6e-05,0.274657,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000132
-method_selection_map,512,blas,0.025526,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9985,True,8.5e-05,8.6e-05,0.251149,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000132
-method_selection_map,512,sas,0.025526,5e-06,2.65e-06,0.00256,0.001358,0.5305,0.001355,0.5305,0.2814,0.9886,False,0.003781,0.004117,0.591325,False,"Chirp aliased / grid shrinks: Mx=0.53, My=0.53 (min M=0.53 <= 1)",True,near_field_asm_4x,0.000132
-method_selection_map,512,fresnel,0.038369,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9924,True,0.000268,0.000451,0.20324,True,Valid Fresnel,True,near_field_asm_4x,0.000346
-method_selection_map,512,asm,0.038369,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9924,True,0.0002,0.000375,0.489201,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000346
-method_selection_map,512,blas,0.038369,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9924,True,0.0002,0.000375,0.485608,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000346
-method_selection_map,512,sas,0.038369,5e-06,3.99e-06,0.00256,0.002041,0.7974,0.002037,0.7974,0.6358,0.9889,False,0.001774,0.001648,1.082803,False,"Chirp aliased / grid shrinks: Mx=0.80, My=0.80 (min M=0.80 <= 1)",True,near_field_asm_4x,0.000346
-method_selection_map,512,fresnel,0.057675,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.986,True,0.000126,0.000134,0.486546,True,Valid Fresnel,True,intermediate_blas_4x,0.000313
-method_selection_map,512,asm,0.057675,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.986,True,0.000154,0.000203,0.482634,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.000313
-method_selection_map,512,blas,0.057675,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.986,True,0.00021,0.000275,0.525976,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000313
-method_selection_map,512,sas,0.057675,5e-06,5.99e-06,0.00256,0.003068,1.1985,0.003062,1.0,1.0,0.989,True,0.000956,0.001115,1.141395,True,Valid SAS regime (M=1.20 > 1),True,intermediate_blas_4x,0.000313
-method_selection_map,512,fresnel,0.086693,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9781,True,0.001678,0.002044,0.424013,True,Valid Fresnel,True,intermediate_blas_4x,0.000597
-method_selection_map,512,asm,0.086693,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9781,True,0.002442,0.004079,0.469386,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.000597
-method_selection_map,512,blas,0.086693,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9781,True,0.0004,0.000403,0.512859,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000597
-method_selection_map,512,sas,0.086693,5e-06,9.01e-06,0.00256,0.004612,1.8016,0.004603,1.0,1.0,0.9891,True,0.001372,0.001226,1.105918,True,Valid SAS regime (M=1.80 > 1),True,intermediate_blas_4x,0.000597
-method_selection_map,512,fresnel,0.130313,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9715,True,0.008763,0.010679,0.478676,False,Transfer-function aliased,True,intermediate_blas_4x,0.000568
-method_selection_map,512,asm,0.130313,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9715,True,0.008491,0.01077,0.517797,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.000568
-method_selection_map,512,blas,0.130313,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9715,True,0.000398,0.000505,0.532059,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000568
-method_selection_map,512,sas,0.130313,5e-06,1.354e-05,0.00256,0.006933,2.7081,0.006919,1.0,1.0,0.9943,True,0.001638,0.001362,1.251351,True,Valid SAS regime (M=2.71 > 1),True,intermediate_blas_4x,0.000568
-method_selection_map,512,fresnel,0.19588,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.961,True,0.01832,0.018318,0.462562,False,Transfer-function aliased,True,intermediate_blas_4x,0.001014
-method_selection_map,512,asm,0.19588,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.961,True,0.016978,0.020289,0.476768,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.001014
-method_selection_map,512,blas,0.19588,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.961,True,0.000913,0.001295,0.489685,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001014
-method_selection_map,512,sas,0.19588,5e-06,2.035e-05,0.00256,0.010421,4.0706,0.010235,1.0,1.0,1.0,True,0.00276,0.002389,1.101238,True,Valid SAS regime (M=4.07 > 1),True,intermediate_blas_4x,0.001014
-method_selection_map,512,fresnel,0.294437,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9391,True,0.031734,0.035608,0.416121,False,Transfer-function aliased,True,intermediate_blas_4x,0.007199
-method_selection_map,512,asm,0.294437,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9391,True,0.028317,0.031806,0.489525,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.007199
-method_selection_map,512,blas,0.294437,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9391,True,0.00449,0.005605,0.502032,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.007199
-method_selection_map,512,sas,0.294437,5e-06,3.059e-05,0.00256,0.015664,6.1188,0.010235,1.0,1.0,1.0,True,0.002219,0.002152,1.155998,True,Valid SAS regime (M=6.12 > 1),True,intermediate_blas_4x,0.007199
-method_selection_map,512,fresnel,0.442584,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9133,True,0.062043,0.07015,0.44612,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.442584,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9133,True,0.063589,0.070162,0.479471,False,Chirp aliased (z > z_c=48 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.442584,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9133,True,0.00694,0.006477,0.493409,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.442584,5e-06,4.599e-05,0.00256,0.023545,9.1974,0.010235,1.0,1.0,1.0,True,0.009216,0.009561,1.042101,True,Valid SAS regime (M=9.20 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.66527,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.8893,0.7909,0.8758,False,0.093342,0.116453,0.435734,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.66527,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.8893,0.7909,0.8758,False,0.092318,0.160866,0.491316,False,Chirp aliased (z > z_c=48 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.66527,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.8893,0.7909,0.8758,False,0.005067,0.009024,0.526658,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.66527,5e-06,6.913e-05,0.00256,0.035392,13.8251,0.010235,1.0,1.0,1.0,True,0.006985,0.008836,1.138418,True,Valid SAS regime (M=13.83 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,1.0,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.5916,0.35,0.8002,False,0.233137,0.336623,0.343023,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,1.0,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.5916,0.35,0.8002,False,0.235176,0.326306,0.218789,False,Chirp aliased (z > z_c=48 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,1.0,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.5916,0.35,0.8002,False,0.02876,0.02931,0.228126,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,1.0,5e-06,0.00010391,0.00256,0.0532,20.7812,0.010235,1.0,1.0,1.0,True,0.005985,0.007861,0.524856,True,Valid SAS regime (M=20.78 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.005,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,0.000722,0.000745,0.188734,True,Valid Fresnel,True,near_field_asm_4x,2.2e-05
-method_selection_map,512,asm,0.005,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,1.9e-05,1.9e-05,0.184801,True,Valid fixed-grid ASM,True,near_field_asm_4x,2.2e-05
-method_selection_map,512,blas,0.005,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,1.9e-05,1.9e-05,0.202219,True,Valid band-limited spectrum,True,near_field_asm_4x,2.2e-05
-method_selection_map,512,sas,0.005,7.5e-06,3.5e-07,0.00384,0.000177,0.0462,0.000177,0.0462,0.0021,0.4367,False,0.119233,0.163012,0.5373,False,"Chirp aliased / grid shrinks: Mx=0.05, My=0.05 (min M=0.05 <= 1)",True,near_field_asm_4x,2.2e-05
-method_selection_map,512,fresnel,0.007516,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,0.000608,0.000713,0.212137,True,Valid Fresnel,True,near_field_asm_4x,2e-05
-method_selection_map,512,asm,0.007516,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,2.8e-05,3e-05,0.193228,True,Valid fixed-grid ASM,True,near_field_asm_4x,2e-05
-method_selection_map,512,blas,0.007516,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,2.8e-05,3e-05,0.277245,True,Valid band-limited spectrum,True,near_field_asm_4x,2e-05
-method_selection_map,512,sas,0.007516,7.5e-06,5.2e-07,0.00384,0.000267,0.0694,0.000266,0.0694,0.0048,0.8877,False,0.05715,0.061661,0.589182,False,"Chirp aliased / grid shrinks: Mx=0.07, My=0.07 (min M=0.07 <= 1)",True,near_field_asm_4x,2e-05
-method_selection_map,512,fresnel,0.011297,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,0.000321,0.000321,0.254466,True,Valid Fresnel,True,near_field_asm_4x,9.9e-05
-method_selection_map,512,asm,0.011297,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,3.3e-05,4.6e-05,0.256189,True,Valid fixed-grid ASM,True,near_field_asm_4x,9.9e-05
-method_selection_map,512,blas,0.011297,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,3.3e-05,4.6e-05,0.232217,True,Valid band-limited spectrum,True,near_field_asm_4x,9.9e-05
-method_selection_map,512,sas,0.011297,7.5e-06,7.8e-07,0.00384,0.000401,0.1043,0.0004,0.1043,0.0109,0.9686,False,0.03446,0.049456,0.438739,False,"Chirp aliased / grid shrinks: Mx=0.10, My=0.10 (min M=0.10 <= 1)",True,near_field_asm_4x,9.9e-05
-method_selection_map,512,fresnel,0.016982,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,0.000224,0.000229,0.168928,True,Valid Fresnel,True,near_field_asm_4x,4.2e-05
-method_selection_map,512,asm,0.016982,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,3.7e-05,3.7e-05,0.184485,True,Valid fixed-grid ASM,True,near_field_asm_4x,4.2e-05
-method_selection_map,512,blas,0.016982,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,3.7e-05,3.7e-05,0.199117,True,Valid band-limited spectrum,True,near_field_asm_4x,4.2e-05
-method_selection_map,512,sas,0.016982,7.5e-06,1.18e-06,0.00384,0.000602,0.1568,0.000601,0.1568,0.0246,0.9796,False,0.018052,0.019339,0.512401,False,"Chirp aliased / grid shrinks: Mx=0.16, My=0.16 (min M=0.16 <= 1)",True,near_field_asm_4x,4.2e-05
-method_selection_map,512,fresnel,0.025526,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,0.000158,0.000168,0.17421,True,Valid Fresnel,True,near_field_asm_4x,0.000139
-method_selection_map,512,asm,0.025526,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,8e-05,0.000104,0.186981,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000139
-method_selection_map,512,blas,0.025526,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,8e-05,0.000104,0.223561,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000139
-method_selection_map,512,sas,0.025526,7.5e-06,1.77e-06,0.00384,0.000905,0.2358,0.000904,0.2358,0.0556,0.9821,False,0.010729,0.010553,0.447683,False,"Chirp aliased / grid shrinks: Mx=0.24, My=0.24 (min M=0.24 <= 1)",True,near_field_asm_4x,0.000139
-method_selection_map,512,fresnel,0.038369,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,0.00012,0.000209,0.202812,True,Valid Fresnel,True,near_field_asm_4x,0.000159
-method_selection_map,512,asm,0.038369,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,6.8e-05,7.4e-05,0.228095,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000159
-method_selection_map,512,blas,0.038369,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,True,6.8e-05,7.4e-05,0.210401,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000159
-method_selection_map,512,sas,0.038369,7.5e-06,2.66e-06,0.00384,0.001361,0.3544,0.001358,0.3544,0.1256,0.983,False,0.006647,0.012099,0.444312,False,"Chirp aliased / grid shrinks: Mx=0.35, My=0.35 (min M=0.35 <= 1)",True,near_field_asm_4x,0.000159
-method_selection_map,512,fresnel,0.057675,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9981,True,0.000183,0.000302,0.189194,True,Valid Fresnel,True,intermediate_blas_4x,0.000317
-method_selection_map,512,asm,0.057675,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9981,True,0.000164,0.000295,0.19126,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000317
-method_selection_map,512,blas,0.057675,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9981,True,0.000164,0.000295,0.20914,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000317
-method_selection_map,512,sas,0.057675,7.5e-06,4e-06,0.00384,0.002046,0.5327,0.002042,0.5327,0.2838,0.9835,False,0.002765,0.00451,0.651068,False,"Chirp aliased / grid shrinks: Mx=0.53, My=0.53 (min M=0.53 <= 1)",True,intermediate_blas_4x,0.000317
-method_selection_map,512,fresnel,0.086693,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9883,True,0.000159,0.000219,0.178077,True,Valid Fresnel,True,intermediate_blas_4x,0.000185
-method_selection_map,512,asm,0.086693,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9883,True,0.000133,0.000155,0.189958,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000185
-method_selection_map,512,blas,0.086693,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9883,True,0.000133,0.000155,0.194597,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000185
-method_selection_map,512,sas,0.086693,7.5e-06,6.01e-06,0.00384,0.003075,0.8007,0.003069,0.8007,0.6411,0.9836,False,0.000908,0.000858,0.45399,False,"Chirp aliased / grid shrinks: Mx=0.80, My=0.80 (min M=0.80 <= 1)",True,intermediate_blas_4x,0.000185
-method_selection_map,512,fresnel,0.130313,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9792,True,0.000316,0.000413,0.188801,True,Valid Fresnel,True,intermediate_blas_4x,0.000439
-method_selection_map,512,asm,0.130313,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9792,True,0.000361,0.000519,0.248573,False,Chirp aliased (z > z_c=108 mm),True,intermediate_blas_4x,0.000439
-method_selection_map,512,blas,0.130313,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9792,True,0.000306,0.00049,0.213175,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000439
-method_selection_map,512,sas,0.130313,7.5e-06,9.03e-06,0.00384,0.004622,1.2036,0.004613,1.0,1.0,0.9838,True,0.000583,0.00076,0.449553,True,Valid SAS regime (M=1.20 > 1),True,intermediate_blas_4x,0.000439
-method_selection_map,512,fresnel,0.19588,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9671,True,0.002376,0.002402,0.181431,True,Valid Fresnel,True,intermediate_blas_4x,0.000673
-method_selection_map,512,asm,0.19588,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9671,True,0.002864,0.003582,0.195748,False,Chirp aliased (z > z_c=108 mm),True,intermediate_blas_4x,0.000673
-method_selection_map,512,blas,0.19588,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9671,True,0.000452,0.000469,0.208583,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000673
-method_selection_map,512,sas,0.19588,7.5e-06,1.357e-05,0.00384,0.006947,1.8092,0.006934,1.0,1.0,0.9838,True,0.000846,0.000655,0.469791,True,Valid SAS regime (M=1.81 > 1),True,intermediate_blas_4x,0.000673
-method_selection_map,512,fresnel,0.294437,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9587,True,0.016588,0.018353,0.17296,False,Transfer-function aliased,True,intermediate_blas_4x,0.000858
-method_selection_map,512,asm,0.294437,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9587,True,0.016069,0.016519,0.183385,False,Chirp aliased (z > z_c=108 mm),True,intermediate_blas_4x,0.000858
-method_selection_map,512,blas,0.294437,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9587,True,0.000612,0.000776,0.202834,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000858
-method_selection_map,512,sas,0.294437,7.5e-06,2.04e-05,0.00384,0.010443,2.7195,0.010422,1.0,1.0,0.9921,True,0.000973,0.000803,0.46568,True,Valid SAS regime (M=2.72 > 1),True,intermediate_blas_4x,0.000858
-method_selection_map,512,fresnel,0.442584,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.941,True,0.026282,0.04222,0.190202,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.442584,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.941,True,0.02769,0.05992,0.201879,False,Chirp aliased (z > z_c=108 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.442584,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.941,True,0.0085,0.008378,0.248714,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.442584,7.5e-06,3.066e-05,0.00384,0.015697,4.0878,0.015353,1.0,1.0,1.0,True,0.009301,0.010639,0.730032,True,Valid SAS regime (M=4.09 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.66527,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.913,True,0.065294,0.071172,0.241335,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.66527,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.913,True,0.067858,0.071778,0.586988,False,Chirp aliased (z > z_c=108 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.66527,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.913,True,0.006539,0.007284,0.582549,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.66527,7.5e-06,4.608e-05,0.00384,0.023595,6.1445,0.015353,1.0,1.0,1.0,True,0.007597,0.008751,1.292959,True,Valid SAS regime (M=6.14 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,1.0,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,0.8875,0.7876,0.8758,False,0.092479,0.128307,0.544625,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,1.0,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,0.8875,0.7876,0.8758,False,0.094395,0.104135,0.82639,False,Chirp aliased (z > z_c=108 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,1.0,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,0.8875,0.7876,0.8758,False,0.007556,0.008148,0.758247,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,1.0,7.5e-06,6.927e-05,0.00384,0.035467,9.2361,0.015353,1.0,1.0,1.0,True,0.007742,0.009265,1.596911,True,Valid SAS regime (M=9.24 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.005,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,0.000173,0.000173,0.605523,True,Valid Fresnel,True,near_field_asm_4x,1e-05
-method_selection_map,512,asm,0.005,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,7e-06,7e-06,0.64115,True,Valid fixed-grid ASM,True,near_field_asm_4x,1e-05
-method_selection_map,512,blas,0.005,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,7e-06,7e-06,0.5984,True,Valid band-limited spectrum,True,near_field_asm_4x,1e-05
-method_selection_map,512,sas,0.005,1e-05,2.6e-07,0.00512,0.000133,0.026,0.000133,0.026,0.0007,0.2569,False,0.255326,0.353813,1.312472,False,"Chirp aliased / grid shrinks: Mx=0.03, My=0.03 (min M=0.03 <= 1)",True,near_field_asm_4x,1e-05
-method_selection_map,512,fresnel,0.007516,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,0.000328,0.000329,0.594757,True,Valid Fresnel,True,near_field_asm_4x,2.7e-05
-method_selection_map,512,asm,0.007516,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,1.1e-05,1e-05,0.582849,True,Valid fixed-grid ASM,True,near_field_asm_4x,2.7e-05
-method_selection_map,512,blas,0.007516,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,1.1e-05,1e-05,0.707288,True,Valid band-limited spectrum,True,near_field_asm_4x,2.7e-05
-method_selection_map,512,sas,0.007516,1e-05,3.9e-07,0.00512,0.0002,0.039,0.0002,0.039,0.0015,0.5866,False,0.112587,0.123871,1.339186,False,"Chirp aliased / grid shrinks: Mx=0.04, My=0.04 (min M=0.04 <= 1)",True,near_field_asm_4x,2.7e-05
-method_selection_map,512,fresnel,0.011297,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,0.000213,0.000379,0.534945,True,Valid Fresnel,True,near_field_asm_4x,1.9e-05
-method_selection_map,512,asm,0.011297,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,1.4e-05,1.4e-05,0.559239,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.9e-05
-method_selection_map,512,blas,0.011297,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,1.4e-05,1.4e-05,0.545003,True,Valid band-limited spectrum,True,near_field_asm_4x,1.9e-05
-method_selection_map,512,sas,0.011297,1e-05,5.9e-07,0.00512,0.000301,0.0587,0.0003,0.0587,0.0034,0.9316,False,0.059474,0.065496,1.142833,False,"Chirp aliased / grid shrinks: Mx=0.06, My=0.06 (min M=0.06 <= 1)",True,near_field_asm_4x,1.9e-05
-method_selection_map,512,fresnel,0.016982,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,0.000126,0.000127,0.434514,True,Valid Fresnel,True,near_field_asm_4x,1e-05
-method_selection_map,512,asm,0.016982,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,2.6e-05,2.7e-05,0.4717,True,Valid fixed-grid ASM,True,near_field_asm_4x,1e-05
-method_selection_map,512,blas,0.016982,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,2.6e-05,2.7e-05,0.538187,True,Valid band-limited spectrum,True,near_field_asm_4x,1e-05
-method_selection_map,512,sas,0.016982,1e-05,8.8e-07,0.00512,0.000452,0.0882,0.000451,0.0882,0.0078,0.9643,False,0.031266,0.031494,1.093376,False,"Chirp aliased / grid shrinks: Mx=0.09, My=0.09 (min M=0.09 <= 1)",True,near_field_asm_4x,1e-05
-method_selection_map,512,fresnel,0.025526,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,0.000114,0.000167,0.468087,True,Valid Fresnel,True,near_field_asm_4x,7.8e-05
-method_selection_map,512,asm,0.025526,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,3.1e-05,3.1e-05,0.522478,True,Valid fixed-grid ASM,True,near_field_asm_4x,7.8e-05
-method_selection_map,512,blas,0.025526,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,3.1e-05,3.1e-05,0.5348,True,Valid band-limited spectrum,True,near_field_asm_4x,7.8e-05
-method_selection_map,512,sas,0.025526,1e-05,1.33e-06,0.00512,0.000679,0.1326,0.000678,0.1326,0.0176,0.9729,False,0.019017,0.021768,1.130771,False,"Chirp aliased / grid shrinks: Mx=0.13, My=0.13 (min M=0.13 <= 1)",True,near_field_asm_4x,7.8e-05
-method_selection_map,512,fresnel,0.038369,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,0.0001,0.000154,0.478973,True,Valid Fresnel,True,near_field_asm_4x,4e-05
-method_selection_map,512,asm,0.038369,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,5.6e-05,9.4e-05,0.469043,True,Valid fixed-grid ASM,True,near_field_asm_4x,4e-05
-method_selection_map,512,blas,0.038369,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,5.6e-05,9.4e-05,0.575148,True,Valid band-limited spectrum,True,near_field_asm_4x,4e-05
-method_selection_map,512,sas,0.038369,1e-05,1.99e-06,0.00512,0.001021,0.1993,0.001019,0.1993,0.0397,0.9766,False,0.011445,0.01811,1.107923,False,"Chirp aliased / grid shrinks: Mx=0.20, My=0.20 (min M=0.20 <= 1)",True,near_field_asm_4x,4e-05
-method_selection_map,512,fresnel,0.057675,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,5.9e-05,7.2e-05,0.417756,True,Valid Fresnel,True,intermediate_blas_4x,0.000155
-method_selection_map,512,asm,0.057675,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,4.7e-05,5.4e-05,0.485964,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000155
-method_selection_map,512,blas,0.057675,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,True,4.7e-05,5.4e-05,0.562542,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000155
-method_selection_map,512,sas,0.057675,1e-05,3e-06,0.00512,0.001534,0.2996,0.001531,0.2996,0.0898,0.9772,False,0.006858,0.006783,1.251317,False,"Chirp aliased / grid shrinks: Mx=0.30, My=0.30 (min M=0.30 <= 1)",True,intermediate_blas_4x,0.000155
-method_selection_map,512,fresnel,0.086693,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9999,True,0.000116,0.000191,0.473522,True,Valid Fresnel,True,intermediate_blas_4x,0.0002
-method_selection_map,512,asm,0.086693,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9999,True,9.8e-05,0.00017,0.553784,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.0002
-method_selection_map,512,blas,0.086693,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9999,True,9.8e-05,0.00017,0.513791,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.0002
-method_selection_map,512,sas,0.086693,1e-05,4.5e-06,0.00512,0.002306,0.4504,0.002302,0.4504,0.2029,0.9778,False,0.002499,0.00392,1.122923,False,"Chirp aliased / grid shrinks: Mx=0.45, My=0.45 (min M=0.45 <= 1)",True,intermediate_blas_4x,0.0002
-method_selection_map,512,fresnel,0.130313,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9894,True,0.000171,0.00028,0.449572,True,Valid Fresnel,True,intermediate_blas_4x,0.000253
-method_selection_map,512,asm,0.130313,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9894,True,0.000162,0.000259,0.490512,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000253
-method_selection_map,512,blas,0.130313,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9894,True,0.000162,0.000259,0.492081,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000253
-method_selection_map,512,sas,0.130313,1e-05,6.77e-06,0.00512,0.003466,0.677,0.00346,0.677,0.4584,0.9779,False,0.000959,0.000977,1.1115,False,"Chirp aliased / grid shrinks: Mx=0.68, My=0.68 (min M=0.68 <= 1)",True,intermediate_blas_4x,0.000253
-method_selection_map,512,fresnel,0.19588,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9776,True,0.000343,0.000541,0.498616,True,Valid Fresnel,True,intermediate_blas_4x,0.000675
-method_selection_map,512,asm,0.19588,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9776,True,0.000343,0.000542,0.544949,False,Chirp aliased (z > z_c=192 mm),True,intermediate_blas_4x,0.000675
-method_selection_map,512,blas,0.19588,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9776,True,0.00034,0.000496,0.572478,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000675
-method_selection_map,512,sas,0.19588,1e-05,1.018e-05,0.00512,0.00521,1.0177,0.0052,1.0,1.0,0.978,True,0.000412,0.000598,1.106008,True,Valid SAS regime (M=1.02 > 1),True,intermediate_blas_4x,0.000675
-method_selection_map,512,fresnel,0.294437,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9645,True,0.001236,0.001726,0.433469,True,Valid Fresnel,True,intermediate_blas_4x,0.001206
-method_selection_map,512,asm,0.294437,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9645,True,0.001208,0.001699,0.453729,False,Chirp aliased (z > z_c=192 mm),True,intermediate_blas_4x,0.001206
-method_selection_map,512,blas,0.294437,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9645,True,0.000824,0.000782,0.52508,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001206
-method_selection_map,512,sas,0.294437,1e-05,1.53e-05,0.00512,0.007832,1.5297,0.007817,1.0,1.0,0.978,True,0.000425,0.000467,1.038015,True,Valid SAS regime (M=1.53 > 1),True,intermediate_blas_4x,0.001206
-method_selection_map,512,fresnel,0.442584,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9567,True,0.01741,0.027921,0.453746,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.442584,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9567,True,0.020557,0.036676,0.456965,False,Chirp aliased (z > z_c=192 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.442584,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9567,True,0.011068,0.01337,0.476597,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.442584,1e-05,2.299e-05,0.00512,0.011773,2.2994,0.01175,1.0,1.0,0.9894,True,0.011603,0.01372,1.144146,True,Valid SAS regime (M=2.30 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.66527,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9351,True,0.043483,0.043309,0.467607,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,0.66527,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9351,True,0.045307,0.045313,0.522301,False,Chirp aliased (z > z_c=192 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.66527,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9351,True,0.010761,0.012122,0.621525,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.66527,1e-05,3.456e-05,0.00512,0.017696,3.4563,0.017662,1.0,1.0,0.9965,True,0.011435,0.01299,1.44967,True,Valid SAS regime (M=3.46 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,1.0,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.8937,True,0.086384,0.136759,0.47967,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,1.0,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.8937,True,0.084499,0.118094,0.759258,False,Chirp aliased (z > z_c=192 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,1.0,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.8937,True,0.012239,0.01285,0.553618,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,1.0,1e-05,5.195e-05,0.00512,0.0266,5.1953,0.02047,1.0,1.0,1.0,True,0.011766,0.012712,1.513481,True,Valid SAS regime (M=5.20 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.005,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,5.2e-05,5.3e-05,0.570838,True,Valid Fresnel,True,near_field_asm_4x,4e-06
-method_selection_map,512,asm,0.005,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,3e-06,3e-06,0.555392,True,Valid fixed-grid ASM,True,near_field_asm_4x,4e-06
-method_selection_map,512,blas,0.005,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,3e-06,3e-06,0.280047,True,Valid band-limited spectrum,True,near_field_asm_4x,4e-06
-method_selection_map,512,sas,0.005,1.5e-05,1.7e-07,0.00768,8.9e-05,0.0115,8.8e-05,0.0115,0.0001,0.0839,False,1.145909,0.725519,0.547657,False,"Chirp aliased / grid shrinks: Mx=0.01, My=0.01 (min M=0.01 <= 1)",True,near_field_asm_4x,4e-06
-method_selection_map,512,fresnel,0.007516,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,0.000107,0.000271,0.215162,True,Valid Fresnel,True,near_field_asm_4x,1.3e-05
-method_selection_map,512,asm,0.007516,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,8e-06,1.7e-05,0.263595,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.3e-05
-method_selection_map,512,blas,0.007516,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,8e-06,1.7e-05,0.236739,True,Valid band-limited spectrum,True,near_field_asm_4x,1.3e-05
-method_selection_map,512,sas,0.007516,1.5e-05,2.6e-07,0.00768,0.000133,0.0174,0.000133,0.0174,0.0003,0.2548,False,0.276091,0.318692,0.49689,False,"Chirp aliased / grid shrinks: Mx=0.02, My=0.02 (min M=0.02 <= 1)",True,near_field_asm_4x,1.3e-05
-method_selection_map,512,fresnel,0.011297,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,0.000105,0.000247,0.17705,True,Valid Fresnel,True,near_field_asm_4x,1.2e-05
-method_selection_map,512,asm,0.011297,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,1e-05,1.9e-05,0.210243,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.2e-05
-method_selection_map,512,blas,0.011297,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,1e-05,1.9e-05,0.373596,True,Valid band-limited spectrum,True,near_field_asm_4x,1.2e-05
-method_selection_map,512,sas,0.011297,1.5e-05,3.9e-07,0.00768,0.0002,0.0261,0.0002,0.0261,0.0007,0.6574,False,0.142161,0.162207,1.313782,False,"Chirp aliased / grid shrinks: Mx=0.03, My=0.03 (min M=0.03 <= 1)",True,near_field_asm_4x,1.2e-05
-method_selection_map,512,fresnel,0.016982,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,0.000104,0.000124,0.571157,True,Valid Fresnel,True,near_field_asm_4x,1.9e-05
-method_selection_map,512,asm,0.016982,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,1.1e-05,1.1e-05,0.564639,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.9e-05
-method_selection_map,512,blas,0.016982,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,1.1e-05,1.1e-05,0.537993,True,Valid band-limited spectrum,True,near_field_asm_4x,1.9e-05
-method_selection_map,512,sas,0.016982,1.5e-05,5.9e-07,0.00768,0.000301,0.0392,0.000301,0.0392,0.0015,0.9149,False,0.06575,0.06481,1.236204,False,"Chirp aliased / grid shrinks: Mx=0.04, My=0.04 (min M=0.04 <= 1)",True,near_field_asm_4x,1.9e-05
-method_selection_map,512,fresnel,0.025526,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,7.9e-05,8.6e-05,0.492941,True,Valid Fresnel,True,near_field_asm_4x,3.5e-05
-method_selection_map,512,asm,0.025526,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,1.8e-05,2e-05,0.481499,True,Valid fixed-grid ASM,True,near_field_asm_4x,3.5e-05
-method_selection_map,512,blas,0.025526,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,1.8e-05,2e-05,0.507211,True,Valid band-limited spectrum,True,near_field_asm_4x,3.5e-05
-method_selection_map,512,sas,0.025526,1.5e-05,8.8e-07,0.00768,0.000453,0.0589,0.000452,0.0589,0.0035,0.9538,False,0.041044,0.042818,1.082125,False,"Chirp aliased / grid shrinks: Mx=0.06, My=0.06 (min M=0.06 <= 1)",True,near_field_asm_4x,3.5e-05
-method_selection_map,512,fresnel,0.038369,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,3.8e-05,4e-05,0.430138,True,Valid Fresnel,True,near_field_asm_4x,0.000107
-method_selection_map,512,asm,0.038369,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,3.5e-05,4.7e-05,0.497915,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000107
-method_selection_map,512,blas,0.038369,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,3.5e-05,4.7e-05,0.486604,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000107
-method_selection_map,512,sas,0.038369,1.5e-05,1.33e-06,0.00768,0.00068,0.0886,0.000679,0.0886,0.0078,0.9616,False,0.026464,0.029349,1.084006,False,"Chirp aliased / grid shrinks: Mx=0.09, My=0.09 (min M=0.09 <= 1)",True,near_field_asm_4x,0.000107
-method_selection_map,512,fresnel,0.057675,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,7e-05,0.000108,0.447653,True,Valid Fresnel,True,intermediate_blas_4x,4.9e-05
-method_selection_map,512,asm,0.057675,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,2.6e-05,3.7e-05,0.516142,True,Valid fixed-grid ASM,True,intermediate_blas_4x,4.9e-05
-method_selection_map,512,blas,0.057675,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,2.6e-05,3.7e-05,0.508417,True,Valid band-limited spectrum,True,intermediate_blas_4x,4.9e-05
-method_selection_map,512,sas,0.057675,1.5e-05,2e-06,0.00768,0.001023,0.1332,0.001021,0.1332,0.0177,0.9665,False,0.013937,0.013166,1.102898,False,"Chirp aliased / grid shrinks: Mx=0.13, My=0.13 (min M=0.13 <= 1)",True,intermediate_blas_4x,4.9e-05
-method_selection_map,512,fresnel,0.086693,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,9.7e-05,0.000165,0.444632,True,Valid Fresnel,True,intermediate_blas_4x,0.000178
-method_selection_map,512,asm,0.086693,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,5.9e-05,9.2e-05,0.513138,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000178
-method_selection_map,512,blas,0.086693,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,5.9e-05,9.2e-05,0.537631,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000178
-method_selection_map,512,sas,0.086693,1.5e-05,3e-06,0.00768,0.001537,0.2002,0.001534,0.2002,0.0401,0.9675,False,0.006607,0.005335,1.083957,False,"Chirp aliased / grid shrinks: Mx=0.20, My=0.20 (min M=0.20 <= 1)",True,intermediate_blas_4x,0.000178
-method_selection_map,512,fresnel,0.130313,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,6.9e-05,6.9e-05,0.464954,True,Valid Fresnel,True,intermediate_blas_4x,6.8e-05
-method_selection_map,512,asm,0.130313,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,7.5e-05,0.000109,0.536007,True,Valid fixed-grid ASM,True,intermediate_blas_4x,6.8e-05
-method_selection_map,512,blas,0.130313,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,True,7.5e-05,0.000109,0.520751,True,Valid band-limited spectrum,True,intermediate_blas_4x,6.8e-05
-method_selection_map,512,sas,0.130313,1.5e-05,4.51e-06,0.00768,0.002311,0.3009,0.002306,0.3009,0.0905,0.9681,False,0.003341,0.003186,1.158713,False,"Chirp aliased / grid shrinks: Mx=0.30, My=0.30 (min M=0.30 <= 1)",True,intermediate_blas_4x,6.8e-05
-method_selection_map,512,fresnel,0.19588,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9998,True,0.000215,0.000449,0.489247,True,Valid Fresnel,True,intermediate_blas_4x,0.000383
-method_selection_map,512,asm,0.19588,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9998,True,0.000222,0.00048,0.543714,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000383
-method_selection_map,512,blas,0.19588,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9998,True,0.000222,0.00048,0.506305,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000383
-method_selection_map,512,sas,0.19588,1.5e-05,6.78e-06,0.00768,0.003474,0.4523,0.003467,0.4523,0.2046,0.9679,False,0.001999,0.002309,1.208281,False,"Chirp aliased / grid shrinks: Mx=0.45, My=0.45 (min M=0.45 <= 1)",True,intermediate_blas_4x,0.000383
-method_selection_map,512,fresnel,0.294437,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9841,True,0.000296,0.000424,0.228664,True,Valid Fresnel,True,intermediate_blas_4x,0.000495
-method_selection_map,512,asm,0.294437,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9841,True,0.000288,0.000467,0.285619,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000495
-method_selection_map,512,blas,0.294437,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9841,True,0.000288,0.000467,0.22343,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000495
-method_selection_map,512,sas,0.294437,1.5e-05,1.02e-05,0.00768,0.005221,0.6799,0.005211,0.6799,0.4622,0.9682,False,0.001001,0.001299,0.48644,False,"Chirp aliased / grid shrinks: Mx=0.68, My=0.68 (min M=0.68 <= 1)",True,intermediate_blas_4x,0.000495
-method_selection_map,512,fresnel,0.442584,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9722,True,0.022139,0.025594,0.490033,True,Valid Fresnel,True,analytical_airy,0.005
-method_selection_map,512,asm,0.442584,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9722,True,0.022139,0.025593,0.464278,False,Chirp aliased (z > z_c=433 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.442584,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9722,True,0.022158,0.026752,0.514264,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.442584,1.5e-05,1.533e-05,0.00768,0.007848,1.0219,0.007833,1.0,1.0,0.9728,True,0.022164,0.025667,1.195451,True,Valid SAS regime (M=1.02 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,0.66527,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9566,True,0.02314,0.024702,0.479509,True,Valid Fresnel,True,analytical_airy,0.005
-method_selection_map,512,asm,0.66527,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9566,True,0.023148,0.024426,0.478214,False,Chirp aliased (z > z_c=433 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,0.66527,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9566,True,0.022685,0.024903,0.570365,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,0.66527,1.5e-05,2.304e-05,0.00768,0.011797,1.5361,0.011774,1.0,1.0,0.9775,True,0.023262,0.025006,1.278876,True,Valid SAS regime (M=1.54 > 1),True,analytical_airy,0.005
-method_selection_map,512,fresnel,1.0,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9351,True,0.053432,0.055298,0.458248,False,Transfer-function aliased,True,analytical_airy,0.005
-method_selection_map,512,asm,1.0,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9351,True,0.053474,0.059316,0.536555,False,Chirp aliased (z > z_c=433 mm),True,analytical_airy,0.005
-method_selection_map,512,blas,1.0,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9351,True,0.023181,0.024021,0.522807,True,Valid band-limited spectrum,True,analytical_airy,0.005
-method_selection_map,512,sas,1.0,1.5e-05,3.464e-05,0.00768,0.017733,2.309,0.017699,1.0,1.0,0.9845,True,0.023946,0.024782,0.719667,True,Valid SAS regime (M=2.31 > 1),True,analytical_airy,0.005
-fixed_fov,256,fresnel,0.5,1e-05,1e-05,0.00256,0.00256,1.0,0.00256,,,,,0.066084,0.07619,0.0589,True,Shared (2.56 mm),True,,
-fixed_fov,256,asm,0.5,1e-05,1e-05,0.00256,0.00256,1.0,0.00256,,,,,0.067879,0.094862,0.0707,True,Shared (2.56 mm),True,,
-fixed_fov,256,blas,0.5,1e-05,1e-05,0.00256,0.00256,1.0,0.00256,,,,,0.029491,0.017542,0.0778,True,Shared (2.56 mm),True,,
-fixed_fov,256,sas,0.5,1e-05,5.195e-05,0.00256,0.0133,5.1953,0.013248,,,,,0.028257,0.013233,0.1613,True,Scaled (13.3 mm),True,,
-fixed_fov,512,fresnel,0.5,5e-06,5e-06,0.00256,0.00256,1.0,0.00256,,,,,0.073288,0.114309,0.2623,True,Shared (2.56 mm),True,,
-fixed_fov,512,asm,0.5,5e-06,5e-06,0.00256,0.00256,1.0,0.00256,,,,,0.071135,0.180898,0.251,True,Shared (2.56 mm),True,,
-fixed_fov,512,blas,0.5,5e-06,5e-06,0.00256,0.00256,1.0,0.00256,,,,,0.018678,0.01841,0.2822,True,Shared (2.56 mm),True,,
-fixed_fov,512,sas,0.5,5e-06,5.195e-05,0.00256,0.0266,10.3906,0.026548,,,,,0.016128,0.006632,0.6744,True,Scaled (26.6 mm),True,,
-fixed_fov,1024,fresnel,0.5,2.5e-06,2.5e-06,0.00256,0.00256,1.0,0.00256,,,,,0.068379,0.130841,1.0325,True,Shared (2.56 mm),True,,
-fixed_fov,1024,asm,0.5,2.5e-06,2.5e-06,0.00256,0.00256,1.0,0.00256,,,,,0.067858,0.136309,1.1593,True,Shared (2.56 mm),True,,
-fixed_fov,1024,blas,0.5,2.5e-06,2.5e-06,0.00256,0.00256,1.0,0.00256,,,,,0.013962,0.018899,1.2117,True,Shared (2.56 mm),True,,
-fixed_fov,1024,sas,0.5,2.5e-06,5.195e-05,0.00256,0.0532,20.7812,0.053148,,,,,0.010367,0.003791,2.7343,True,Scaled (53.2 mm),True,,
+experiment,N,method,z_m,dx_source_m,dx_output_m,source_fov_m,output_fov_m,magnification,common_width_m,coverage_ratio,coverage_2d,captured_power_ratio,ref_window_power_ratio,sufficient_coverage,relative_l2_error,peak_normalized_error,runtime_s,valid,sas_reason,reference_converged,ref_type,ref_uncertainty
+method_selection_map,512,fresnel,0.005,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9998,0.9998,True,0.002696,0.003121,0.178818,True,Valid Fresnel,True,near_field_asm_4x,0.00011
+method_selection_map,512,asm,0.005,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9998,0.9998,True,0.000104,0.00013,0.210227,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.00011
+method_selection_map,512,blas,0.005,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9998,0.9998,True,0.000104,0.00013,0.210335,True,Valid band-limited spectrum,True,near_field_asm_4x,0.00011
+method_selection_map,512,sas,0.005,2.5e-06,1.04e-06,0.00128,0.000532,0.4156,0.000531,0.4156,0.1727,0.9924,0.9924,False,0.010292,0.013142,0.55379,False,"Chirp aliased / grid shrinks: Mx=0.42, My=0.42 (min M=0.42 <= 1)",True,near_field_asm_4x,0.00011
+method_selection_map,512,fresnel,0.007516,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9979,0.9979,True,0.001307,0.001521,0.184161,True,Valid Fresnel,True,near_field_asm_4x,0.000215
+method_selection_map,512,asm,0.007516,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9979,0.9979,True,0.000169,0.000263,0.221118,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000215
+method_selection_map,512,blas,0.007516,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9979,0.9979,True,0.000169,0.000263,0.290663,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000215
+method_selection_map,512,sas,0.007516,2.5e-06,1.56e-06,0.00128,0.0008,0.6247,0.000798,0.6247,0.3903,0.9938,0.9938,False,0.005528,0.007711,0.562485,False,"Chirp aliased / grid shrinks: Mx=0.62, My=0.62 (min M=0.62 <= 1)",True,near_field_asm_4x,0.000215
+method_selection_map,512,fresnel,0.011297,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9948,0.9948,True,0.000547,0.000549,0.2171,True,Valid Fresnel,True,near_field_asm_4x,0.000422
+method_selection_map,512,asm,0.011297,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9948,0.9948,True,0.000239,0.000254,0.209612,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000422
+method_selection_map,512,blas,0.011297,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9948,0.9948,True,0.000239,0.000254,0.213381,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000422
+method_selection_map,512,sas,0.011297,2.5e-06,2.35e-06,0.00128,0.001202,0.9391,0.0012,0.9391,0.8819,0.9943,0.9943,False,0.002267,0.0038,0.507945,False,"Chirp aliased / grid shrinks: Mx=0.94, My=0.94 (min M=0.94 <= 1)",True,near_field_asm_4x,0.000422
+method_selection_map,512,fresnel,0.016982,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9914,0.9914,True,0.000312,0.000401,0.195003,True,Valid Fresnel,True,near_field_asm_4x,0.001082
+method_selection_map,512,asm,0.016982,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9914,0.9914,True,0.000494,0.000495,0.231392,False,Chirp aliased (z > z_c=12 mm),True,near_field_asm_4x,0.001082
+method_selection_map,512,blas,0.016982,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9914,0.9914,True,0.000224,0.000234,0.219986,True,Valid band-limited spectrum,True,near_field_asm_4x,0.001082
+method_selection_map,512,sas,0.016982,2.5e-06,3.53e-06,0.00128,0.001807,1.4116,0.001803,1.0,1.0,0.9945,0.9945,True,0.002116,0.002182,0.649712,True,Valid SAS regime (M=1.41 > 1),True,near_field_asm_4x,0.001082
+method_selection_map,512,fresnel,0.025526,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9881,0.9873,True,0.007188,0.007787,0.187811,False,Transfer-function aliased,True,intermediate_blas_4x,0.000358
+method_selection_map,512,asm,0.025526,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9881,0.9873,True,0.007834,0.009748,0.21619,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.000358
+method_selection_map,512,blas,0.025526,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9866,0.9873,True,0.000209,0.000219,0.222802,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000358
+method_selection_map,512,sas,0.025526,2.5e-06,5.3e-06,0.00128,0.002716,2.1218,0.002711,1.0,1.0,0.9945,0.9952,True,0.005189,0.007371,0.482457,True,Valid SAS regime (M=2.12 > 1),True,intermediate_blas_4x,0.000358
+method_selection_map,512,fresnel,0.038369,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9816,0.9834,True,0.009321,0.009187,0.211075,False,Transfer-function aliased,True,intermediate_blas_4x,0.001661
+method_selection_map,512,asm,0.038369,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9816,0.9834,True,0.009148,0.009304,0.259761,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.001661
+method_selection_map,512,blas,0.038369,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9797,0.9834,True,0.00077,0.001036,0.26175,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001661
+method_selection_map,512,sas,0.038369,2.5e-06,7.97e-06,0.00128,0.004082,3.1894,0.004074,1.0,1.0,0.9946,0.9983,True,0.005749,0.007083,0.664093,True,Valid SAS regime (M=3.19 > 1),True,intermediate_blas_4x,0.001661
+method_selection_map,512,fresnel,0.057675,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9727,0.976,True,0.014213,0.014228,0.291928,False,Transfer-function aliased,True,intermediate_blas_4x,0.001024
+method_selection_map,512,asm,0.057675,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9726,0.976,True,0.013357,0.017041,0.258705,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.001024
+method_selection_map,512,blas,0.057675,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9693,0.976,True,0.000964,0.001169,0.266809,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001024
+method_selection_map,512,sas,0.057675,2.5e-06,1.199e-05,0.00128,0.006137,4.7942,0.005118,1.0,1.0,0.9946,1.0,True,0.010289,0.008736,0.574986,True,Valid SAS regime (M=4.79 > 1),True,intermediate_blas_4x,0.001024
+method_selection_map,512,fresnel,0.086693,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.959,0.9644,True,0.018977,0.018965,0.261877,False,Transfer-function aliased,True,intermediate_blas_4x,0.001466
+method_selection_map,512,asm,0.086693,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.959,0.9644,True,0.018662,0.019418,0.213248,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.001466
+method_selection_map,512,blas,0.086693,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.954,0.9644,True,0.00102,0.001038,0.303077,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001466
+method_selection_map,512,sas,0.086693,2.5e-06,1.802e-05,0.00128,0.009224,7.2064,0.005118,1.0,1.0,0.9946,1.0,True,0.007799,0.008525,0.607007,True,Valid SAS regime (M=7.21 > 1),True,intermediate_blas_4x,0.001466
+method_selection_map,512,fresnel,0.130313,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9398,0.9476,True,0.035987,0.066821,0.582321,False,Transfer-function aliased,True,intermediate_blas_4x,0.003944
+method_selection_map,512,asm,0.130313,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9397,0.9476,True,0.034093,0.050163,0.631246,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.003944
+method_selection_map,512,blas,0.130313,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.932,0.9476,True,0.00364,0.006138,0.600398,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.003944
+method_selection_map,512,sas,0.130313,2.5e-06,2.708e-05,0.00128,0.013865,10.8323,0.005118,1.0,1.0,0.9946,1.0,True,0.011145,0.012518,1.350988,True,Valid SAS regime (M=10.83 > 1),True,intermediate_blas_4x,0.003944
+method_selection_map,512,fresnel,0.19588,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9118,0.9234,True,0.04934,0.094345,0.513638,False,Transfer-function aliased,True,intermediate_blas_4x,0.012526
+method_selection_map,512,asm,0.19588,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9118,0.9234,True,0.047255,0.075107,0.565803,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.012526
+method_selection_map,512,blas,0.19588,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.9008,0.9234,True,0.011463,0.022851,0.619502,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.012526
+method_selection_map,512,sas,0.19588,2.5e-06,4.071e-05,0.00128,0.020842,16.2826,0.005118,1.0,1.0,0.9946,1.0,True,0.010169,0.012468,1.309657,True,Valid SAS regime (M=16.28 > 1),True,intermediate_blas_4x,0.012526
+method_selection_map,512,fresnel,0.294437,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.854,0.8702,True,0.120666,0.201784,0.587552,False,Transfer-function aliased,True,intermediate_blas_4x,0.014703
+method_selection_map,512,asm,0.294437,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.854,0.8702,True,0.119343,0.207955,0.557684,False,Chirp aliased (z > z_c=12 mm),True,intermediate_blas_4x,0.014703
+method_selection_map,512,blas,0.294437,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,1.0,1.0,0.8377,0.8702,True,0.011235,0.01187,0.638504,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.014703
+method_selection_map,512,sas,0.294437,2.5e-06,6.119e-05,0.00128,0.031328,24.4751,0.005118,1.0,1.0,0.9946,1.0,True,0.011559,0.009939,1.319153,True,Valid SAS regime (M=24.48 > 1),True,intermediate_blas_4x,0.014703
+method_selection_map,512,fresnel,0.442584,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.6684,0.4468,0.8174,0.8456,False,0.160164,0.241544,0.461847,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.442584,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.6684,0.4468,0.8173,0.8456,False,0.158838,0.227789,0.517266,False,Chirp aliased (z > z_c=12 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.442584,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.6684,0.4468,0.7947,0.8456,False,0.059935,0.065173,0.211669,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.442584,2.5e-06,9.197e-05,0.00128,0.047091,36.7898,0.005118,1.0,1.0,0.9946,1.0,True,0.016305,0.011423,0.52504,True,Valid SAS regime (M=36.79 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.66527,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.4447,0.1977,0.6067,0.6379,False,0.367933,0.434136,0.216326,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.66527,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.4447,0.1977,0.6067,0.6379,False,0.37046,0.447774,0.208406,False,Chirp aliased (z > z_c=12 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.66527,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.4447,0.1977,0.5793,0.6379,False,0.028753,0.062771,0.231786,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.66527,2.5e-06,0.00013825,0.00128,0.070785,55.3005,0.005118,1.0,1.0,0.9946,1.0,True,0.012695,0.009628,0.5067,True,Valid SAS regime (M=55.30 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,1.0,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.2958,0.0875,0.3647,0.3844,False,0.447754,0.579006,0.209931,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,1.0,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.2958,0.0875,0.3648,0.3844,False,0.446109,0.539815,0.226844,False,Chirp aliased (z > z_c=12 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,1.0,2.5e-06,2.5e-06,0.00128,0.00128,1.0,0.001277,0.2958,0.0875,0.3401,0.3844,False,0.224817,0.289406,0.225974,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,1.0,2.5e-06,0.00020781,0.00128,0.1064,83.125,0.005118,1.0,1.0,0.9946,1.0,True,0.011261,0.009128,0.540059,True,Valid SAS regime (M=83.12 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.005,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,0.001615,0.001655,0.172272,True,Valid Fresnel,True,near_field_asm_4x,3.8e-05
+method_selection_map,512,asm,0.005,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,3.5e-05,3.6e-05,0.189459,True,Valid fixed-grid ASM,True,near_field_asm_4x,3.8e-05
+method_selection_map,512,blas,0.005,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,3.5e-05,3.6e-05,0.217042,True,Valid band-limited spectrum,True,near_field_asm_4x,3.8e-05
+method_selection_map,512,sas,0.005,5e-06,5.2e-07,0.00256,0.000266,0.1039,0.000265,0.1039,0.0108,0.9066,0.9046,False,0.045422,0.048544,0.471254,False,"Chirp aliased / grid shrinks: Mx=0.10, My=0.10 (min M=0.10 <= 1)",True,near_field_asm_4x,3.8e-05
+method_selection_map,512,fresnel,0.007516,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,0.000942,0.000955,0.205332,True,Valid Fresnel,True,near_field_asm_4x,5.5e-05
+method_selection_map,512,asm,0.007516,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,3.8e-05,6.1e-05,0.235782,True,Valid fixed-grid ASM,True,near_field_asm_4x,5.5e-05
+method_selection_map,512,blas,0.007516,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,3.8e-05,6.1e-05,0.269462,True,Valid band-limited spectrum,True,near_field_asm_4x,5.5e-05
+method_selection_map,512,sas,0.007516,5e-06,7.8e-07,0.00256,0.0004,0.1562,0.000399,0.1562,0.0244,0.9786,0.9779,False,0.026801,0.030347,0.602677,False,"Chirp aliased / grid shrinks: Mx=0.16, My=0.16 (min M=0.16 <= 1)",True,near_field_asm_4x,5.5e-05
+method_selection_map,512,fresnel,0.011297,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,0.000519,0.00075,0.192415,True,Valid Fresnel,True,near_field_asm_4x,6.8e-05
+method_selection_map,512,asm,0.011297,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,5.1e-05,7.5e-05,0.192117,True,Valid fixed-grid ASM,True,near_field_asm_4x,6.8e-05
+method_selection_map,512,blas,0.011297,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,5.1e-05,7.5e-05,0.256186,True,Valid band-limited spectrum,True,near_field_asm_4x,6.8e-05
+method_selection_map,512,sas,0.011297,5e-06,1.17e-06,0.00256,0.000601,0.2348,0.0006,0.2348,0.0551,0.986,0.9862,False,0.014703,0.014555,0.464154,False,"Chirp aliased / grid shrinks: Mx=0.23, My=0.23 (min M=0.23 <= 1)",True,near_field_asm_4x,6.8e-05
+method_selection_map,512,fresnel,0.016982,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,0.000321,0.00035,0.178585,True,Valid Fresnel,True,near_field_asm_4x,0.000202
+method_selection_map,512,asm,0.016982,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,0.000108,0.000138,0.19181,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000202
+method_selection_map,512,blas,0.016982,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,1.0,1.0,True,0.000108,0.000138,0.255116,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000202
+method_selection_map,512,sas,0.016982,5e-06,1.76e-06,0.00256,0.000903,0.3529,0.000902,0.3529,0.1245,0.9879,0.988,False,0.007266,0.008495,0.450276,False,"Chirp aliased / grid shrinks: Mx=0.35, My=0.35 (min M=0.35 <= 1)",True,near_field_asm_4x,0.000202
+method_selection_map,512,fresnel,0.025526,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9985,0.9985,True,0.000228,0.00023,0.231055,True,Valid Fresnel,True,near_field_asm_4x,0.000132
+method_selection_map,512,asm,0.025526,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9985,0.9985,True,8.5e-05,8.6e-05,0.204719,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000132
+method_selection_map,512,blas,0.025526,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9985,0.9985,True,8.5e-05,8.6e-05,0.20284,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000132
+method_selection_map,512,sas,0.025526,5e-06,2.65e-06,0.00256,0.001358,0.5305,0.001355,0.5305,0.2814,0.9886,0.9886,False,0.003781,0.004117,0.604496,False,"Chirp aliased / grid shrinks: Mx=0.53, My=0.53 (min M=0.53 <= 1)",True,near_field_asm_4x,0.000132
+method_selection_map,512,fresnel,0.038369,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9924,0.9924,True,0.000268,0.000451,0.251387,True,Valid Fresnel,True,near_field_asm_4x,0.000346
+method_selection_map,512,asm,0.038369,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9924,0.9924,True,0.0002,0.000375,0.276981,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000346
+method_selection_map,512,blas,0.038369,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9924,0.9924,True,0.0002,0.000375,0.287632,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000346
+method_selection_map,512,sas,0.038369,5e-06,3.99e-06,0.00256,0.002041,0.7974,0.002037,0.7974,0.6358,0.9889,0.9889,False,0.001774,0.001648,0.688284,False,"Chirp aliased / grid shrinks: Mx=0.80, My=0.80 (min M=0.80 <= 1)",True,near_field_asm_4x,0.000346
+method_selection_map,512,fresnel,0.057675,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.986,0.986,True,0.000126,0.000134,0.240409,True,Valid Fresnel,True,intermediate_blas_4x,0.000313
+method_selection_map,512,asm,0.057675,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.986,0.986,True,0.000154,0.000203,0.316255,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.000313
+method_selection_map,512,blas,0.057675,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.986,0.986,True,0.00021,0.000275,0.353433,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000313
+method_selection_map,512,sas,0.057675,5e-06,5.99e-06,0.00256,0.003068,1.1985,0.003062,1.0,1.0,0.989,0.989,True,0.000956,0.001115,0.738611,True,Valid SAS regime (M=1.20 > 1),True,intermediate_blas_4x,0.000313
+method_selection_map,512,fresnel,0.086693,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9794,0.9781,True,0.001678,0.002044,0.188843,True,Valid Fresnel,True,intermediate_blas_4x,0.000597
+method_selection_map,512,asm,0.086693,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9794,0.9781,True,0.002442,0.004079,0.21507,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.000597
+method_selection_map,512,blas,0.086693,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.978,0.9781,True,0.0004,0.000403,0.257223,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000597
+method_selection_map,512,sas,0.086693,5e-06,9.01e-06,0.00256,0.004612,1.8016,0.004603,1.0,1.0,0.9891,0.9891,True,0.001372,0.001226,0.582314,True,Valid SAS regime (M=1.80 > 1),True,intermediate_blas_4x,0.000597
+method_selection_map,512,fresnel,0.130313,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9707,0.9715,True,0.008763,0.010679,0.22228,False,Transfer-function aliased,True,intermediate_blas_4x,0.000568
+method_selection_map,512,asm,0.130313,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9706,0.9715,True,0.008491,0.01077,0.222375,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.000568
+method_selection_map,512,blas,0.130313,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9664,0.9715,True,0.000398,0.000505,0.231571,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000568
+method_selection_map,512,sas,0.130313,5e-06,1.354e-05,0.00256,0.006933,2.7081,0.006919,1.0,1.0,0.9891,0.9943,True,0.001638,0.001362,0.573542,True,Valid SAS regime (M=2.71 > 1),True,intermediate_blas_4x,0.000568
+method_selection_map,512,fresnel,0.19588,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9557,0.961,True,0.01832,0.018318,0.222085,False,Transfer-function aliased,True,intermediate_blas_4x,0.001014
+method_selection_map,512,asm,0.19588,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9557,0.961,True,0.016978,0.020289,0.234961,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.001014
+method_selection_map,512,blas,0.19588,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.95,0.961,True,0.000913,0.001295,0.224143,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001014
+method_selection_map,512,sas,0.19588,5e-06,2.035e-05,0.00256,0.010421,4.0706,0.010235,1.0,1.0,0.9891,1.0,True,0.00276,0.002389,0.473369,True,Valid SAS regime (M=4.07 > 1),True,intermediate_blas_4x,0.001014
+method_selection_map,512,fresnel,0.294437,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9305,0.9391,True,0.031734,0.035608,0.194261,False,Transfer-function aliased,True,intermediate_blas_4x,0.007199
+method_selection_map,512,asm,0.294437,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9306,0.9391,True,0.028317,0.031806,0.236183,False,Chirp aliased (z > z_c=48 mm),True,intermediate_blas_4x,0.007199
+method_selection_map,512,blas,0.294437,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.9219,0.9391,True,0.00449,0.005605,0.245247,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.007199
+method_selection_map,512,sas,0.294437,5e-06,3.059e-05,0.00256,0.015664,6.1188,0.010235,1.0,1.0,0.9891,1.0,True,0.002219,0.002152,0.499179,True,Valid SAS regime (M=6.12 > 1),True,intermediate_blas_4x,0.007199
+method_selection_map,512,fresnel,0.442584,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.897,0.9133,True,0.062043,0.07015,0.215858,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.442584,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.897,0.9133,True,0.063589,0.070162,0.262161,False,Chirp aliased (z > z_c=48 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.442584,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,1.0,1.0,0.8849,0.9133,True,0.00694,0.006477,0.290512,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.442584,5e-06,4.599e-05,0.00256,0.023545,9.1974,0.010235,1.0,1.0,0.9891,1.0,True,0.009216,0.009561,0.575043,True,Valid SAS regime (M=9.20 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.66527,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.8893,0.7909,0.8552,0.8758,False,0.093342,0.116453,0.199737,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.66527,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.8893,0.7909,0.8552,0.8758,False,0.092318,0.160866,0.209857,False,Chirp aliased (z > z_c=48 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.66527,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.8893,0.7909,0.8366,0.8758,False,0.005067,0.009024,0.232763,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.66527,5e-06,6.913e-05,0.00256,0.035392,13.8251,0.010235,1.0,1.0,0.9891,1.0,True,0.006985,0.008836,0.545392,True,Valid SAS regime (M=13.83 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,1.0,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.5916,0.35,0.7732,0.8002,False,0.233137,0.336623,0.214453,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,1.0,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.5916,0.35,0.7733,0.8002,False,0.235176,0.326306,0.243979,False,Chirp aliased (z > z_c=48 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,1.0,5e-06,5e-06,0.00256,0.00256,1.0,0.002555,0.5916,0.35,0.7488,0.8002,False,0.02876,0.02931,0.258222,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,1.0,5e-06,0.00010391,0.00256,0.0532,20.7812,0.010235,1.0,1.0,0.9891,1.0,True,0.005985,0.007861,0.544433,True,Valid SAS regime (M=20.78 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.005,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,0.000722,0.000745,0.186359,True,Valid Fresnel,True,near_field_asm_4x,2.2e-05
+method_selection_map,512,asm,0.005,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,1.9e-05,1.9e-05,0.213874,True,Valid fixed-grid ASM,True,near_field_asm_4x,2.2e-05
+method_selection_map,512,blas,0.005,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,1.9e-05,1.9e-05,0.202125,True,Valid band-limited spectrum,True,near_field_asm_4x,2.2e-05
+method_selection_map,512,sas,0.005,7.5e-06,3.5e-07,0.00384,0.000177,0.0462,0.000177,0.0462,0.0021,0.4677,0.4367,False,0.119233,0.163012,0.590009,False,"Chirp aliased / grid shrinks: Mx=0.05, My=0.05 (min M=0.05 <= 1)",True,near_field_asm_4x,2.2e-05
+method_selection_map,512,fresnel,0.007516,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,0.000608,0.000713,0.206791,True,Valid Fresnel,True,near_field_asm_4x,2e-05
+method_selection_map,512,asm,0.007516,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,2.8e-05,3e-05,0.246493,True,Valid fixed-grid ASM,True,near_field_asm_4x,2e-05
+method_selection_map,512,blas,0.007516,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,2.8e-05,3e-05,0.236972,True,Valid band-limited spectrum,True,near_field_asm_4x,2e-05
+method_selection_map,512,sas,0.007516,7.5e-06,5.2e-07,0.00384,0.000267,0.0694,0.000266,0.0694,0.0048,0.8954,0.8877,False,0.05715,0.061661,0.494281,False,"Chirp aliased / grid shrinks: Mx=0.07, My=0.07 (min M=0.07 <= 1)",True,near_field_asm_4x,2e-05
+method_selection_map,512,fresnel,0.011297,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,0.000321,0.000321,0.178959,True,Valid Fresnel,True,near_field_asm_4x,9.9e-05
+method_selection_map,512,asm,0.011297,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,3.3e-05,4.6e-05,0.214015,True,Valid fixed-grid ASM,True,near_field_asm_4x,9.9e-05
+method_selection_map,512,blas,0.011297,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,3.3e-05,4.6e-05,0.240592,True,Valid band-limited spectrum,True,near_field_asm_4x,9.9e-05
+method_selection_map,512,sas,0.011297,7.5e-06,7.8e-07,0.00384,0.000401,0.1043,0.0004,0.1043,0.0109,0.9689,0.9686,False,0.03446,0.049456,0.543727,False,"Chirp aliased / grid shrinks: Mx=0.10, My=0.10 (min M=0.10 <= 1)",True,near_field_asm_4x,9.9e-05
+method_selection_map,512,fresnel,0.016982,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,0.000224,0.000229,0.183089,True,Valid Fresnel,True,near_field_asm_4x,4.2e-05
+method_selection_map,512,asm,0.016982,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,3.7e-05,3.7e-05,0.218854,True,Valid fixed-grid ASM,True,near_field_asm_4x,4.2e-05
+method_selection_map,512,blas,0.016982,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,3.7e-05,3.7e-05,0.232343,True,Valid band-limited spectrum,True,near_field_asm_4x,4.2e-05
+method_selection_map,512,sas,0.016982,7.5e-06,1.18e-06,0.00384,0.000602,0.1568,0.000601,0.1568,0.0246,0.9792,0.9796,False,0.018052,0.019339,0.511596,False,"Chirp aliased / grid shrinks: Mx=0.16, My=0.16 (min M=0.16 <= 1)",True,near_field_asm_4x,4.2e-05
+method_selection_map,512,fresnel,0.025526,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,0.000158,0.000168,0.202611,True,Valid Fresnel,True,near_field_asm_4x,0.000139
+method_selection_map,512,asm,0.025526,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,8e-05,0.000104,0.235468,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000139
+method_selection_map,512,blas,0.025526,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,8e-05,0.000104,0.230701,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000139
+method_selection_map,512,sas,0.025526,7.5e-06,1.77e-06,0.00384,0.000905,0.2358,0.000904,0.2358,0.0556,0.982,0.9821,False,0.010729,0.010553,0.497587,False,"Chirp aliased / grid shrinks: Mx=0.24, My=0.24 (min M=0.24 <= 1)",True,near_field_asm_4x,0.000139
+method_selection_map,512,fresnel,0.038369,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,0.00012,0.000209,0.185535,True,Valid Fresnel,True,near_field_asm_4x,0.000159
+method_selection_map,512,asm,0.038369,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,6.8e-05,7.4e-05,0.195411,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000159
+method_selection_map,512,blas,0.038369,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,1.0,1.0,True,6.8e-05,7.4e-05,0.208058,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000159
+method_selection_map,512,sas,0.038369,7.5e-06,2.66e-06,0.00384,0.001361,0.3544,0.001358,0.3544,0.1256,0.9831,0.983,False,0.006647,0.012099,0.481436,False,"Chirp aliased / grid shrinks: Mx=0.35, My=0.35 (min M=0.35 <= 1)",True,near_field_asm_4x,0.000159
+method_selection_map,512,fresnel,0.057675,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.998,0.9981,True,0.000183,0.000302,0.250975,True,Valid Fresnel,True,intermediate_blas_4x,0.000317
+method_selection_map,512,asm,0.057675,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.998,0.9981,True,0.000164,0.000295,0.233158,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000317
+method_selection_map,512,blas,0.057675,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.998,0.9981,True,0.000164,0.000295,0.235807,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000317
+method_selection_map,512,sas,0.057675,7.5e-06,4e-06,0.00384,0.002046,0.5327,0.002042,0.5327,0.2838,0.9835,0.9835,False,0.002765,0.00451,0.56674,False,"Chirp aliased / grid shrinks: Mx=0.53, My=0.53 (min M=0.53 <= 1)",True,intermediate_blas_4x,0.000317
+method_selection_map,512,fresnel,0.086693,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9882,0.9883,True,0.000159,0.000219,0.180276,True,Valid Fresnel,True,intermediate_blas_4x,0.000185
+method_selection_map,512,asm,0.086693,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9882,0.9883,True,0.000133,0.000155,0.199972,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000185
+method_selection_map,512,blas,0.086693,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9882,0.9883,True,0.000133,0.000155,0.256691,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000185
+method_selection_map,512,sas,0.086693,7.5e-06,6.01e-06,0.00384,0.003075,0.8007,0.003069,0.8007,0.6411,0.9837,0.9836,False,0.000908,0.000858,0.561651,False,"Chirp aliased / grid shrinks: Mx=0.80, My=0.80 (min M=0.80 <= 1)",True,intermediate_blas_4x,0.000185
+method_selection_map,512,fresnel,0.130313,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9791,0.9792,True,0.000316,0.000413,0.197773,True,Valid Fresnel,True,intermediate_blas_4x,0.000439
+method_selection_map,512,asm,0.130313,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9791,0.9792,True,0.000361,0.000519,0.227854,False,Chirp aliased (z > z_c=108 mm),True,intermediate_blas_4x,0.000439
+method_selection_map,512,blas,0.130313,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9791,0.9792,True,0.000306,0.00049,0.250158,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000439
+method_selection_map,512,sas,0.130313,7.5e-06,9.03e-06,0.00384,0.004622,1.2036,0.004613,1.0,1.0,0.9837,0.9838,True,0.000583,0.00076,0.460317,True,Valid SAS regime (M=1.20 > 1),True,intermediate_blas_4x,0.000439
+method_selection_map,512,fresnel,0.19588,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9693,0.9671,True,0.002376,0.002402,0.209338,True,Valid Fresnel,True,intermediate_blas_4x,0.000673
+method_selection_map,512,asm,0.19588,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9693,0.9671,True,0.002864,0.003582,0.197654,False,Chirp aliased (z > z_c=108 mm),True,intermediate_blas_4x,0.000673
+method_selection_map,512,blas,0.19588,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.967,0.9671,True,0.000452,0.000469,0.250107,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000673
+method_selection_map,512,sas,0.19588,7.5e-06,1.357e-05,0.00384,0.006947,1.8092,0.006934,1.0,1.0,0.9838,0.9838,True,0.000846,0.000655,0.450896,True,Valid SAS regime (M=1.81 > 1),True,intermediate_blas_4x,0.000673
+method_selection_map,512,fresnel,0.294437,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9567,0.9587,True,0.016588,0.018353,0.174159,False,Transfer-function aliased,True,intermediate_blas_4x,0.000858
+method_selection_map,512,asm,0.294437,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9567,0.9587,True,0.016069,0.016519,0.198282,False,Chirp aliased (z > z_c=108 mm),True,intermediate_blas_4x,0.000858
+method_selection_map,512,blas,0.294437,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9505,0.9587,True,0.000612,0.000776,0.214244,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000858
+method_selection_map,512,sas,0.294437,7.5e-06,2.04e-05,0.00384,0.010443,2.7195,0.010422,1.0,1.0,0.9838,0.9921,True,0.000973,0.000803,0.4451,True,Valid SAS regime (M=2.72 > 1),True,intermediate_blas_4x,0.000858
+method_selection_map,512,fresnel,0.442584,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9309,0.941,True,0.026282,0.04222,0.204499,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.442584,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9309,0.941,True,0.02769,0.05992,0.197592,False,Chirp aliased (z > z_c=108 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.442584,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.9218,0.941,True,0.0085,0.008378,0.202762,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.442584,7.5e-06,3.066e-05,0.00384,0.015697,4.0878,0.015353,1.0,1.0,0.9838,1.0,True,0.009301,0.010639,0.47192,True,Valid SAS regime (M=4.09 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.66527,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.898,0.913,True,0.065294,0.071172,0.179386,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.66527,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.898,0.913,True,0.067858,0.071778,0.214449,False,Chirp aliased (z > z_c=108 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.66527,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,1.0,1.0,0.8846,0.913,True,0.006539,0.007284,0.233484,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.66527,7.5e-06,4.608e-05,0.00384,0.023595,6.1445,0.015353,1.0,1.0,0.9838,1.0,True,0.007597,0.008751,0.504704,True,Valid SAS regime (M=6.14 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,1.0,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,0.8875,0.7876,0.8565,0.8758,False,0.092479,0.128307,0.196102,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,1.0,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,0.8875,0.7876,0.8564,0.8758,False,0.094395,0.104135,0.193632,False,Chirp aliased (z > z_c=108 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,1.0,7.5e-06,7.5e-06,0.00384,0.00384,1.0,0.003832,0.8875,0.7876,0.8374,0.8758,False,0.007556,0.008148,0.207746,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,1.0,7.5e-06,6.927e-05,0.00384,0.035467,9.2361,0.015353,1.0,1.0,0.9838,1.0,True,0.007742,0.009265,0.454391,True,Valid SAS regime (M=9.24 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.005,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,0.000173,0.000173,0.169848,True,Valid Fresnel,True,near_field_asm_4x,1e-05
+method_selection_map,512,asm,0.005,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,7e-06,7e-06,0.183433,True,Valid fixed-grid ASM,True,near_field_asm_4x,1e-05
+method_selection_map,512,blas,0.005,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,7e-06,7e-06,0.220259,True,Valid band-limited spectrum,True,near_field_asm_4x,1e-05
+method_selection_map,512,sas,0.005,1e-05,2.6e-07,0.00512,0.000133,0.026,0.000133,0.026,0.0007,0.2747,0.2569,False,0.255326,0.353813,0.541847,False,"Chirp aliased / grid shrinks: Mx=0.03, My=0.03 (min M=0.03 <= 1)",True,near_field_asm_4x,1e-05
+method_selection_map,512,fresnel,0.007516,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,0.000328,0.000329,0.192943,True,Valid Fresnel,True,near_field_asm_4x,2.7e-05
+method_selection_map,512,asm,0.007516,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,1.1e-05,1e-05,0.194057,True,Valid fixed-grid ASM,True,near_field_asm_4x,2.7e-05
+method_selection_map,512,blas,0.007516,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,1.1e-05,1e-05,0.279328,True,Valid band-limited spectrum,True,near_field_asm_4x,2.7e-05
+method_selection_map,512,sas,0.007516,1e-05,3.9e-07,0.00512,0.0002,0.039,0.0002,0.039,0.0015,0.6518,0.5866,False,0.112587,0.123871,0.617179,False,"Chirp aliased / grid shrinks: Mx=0.04, My=0.04 (min M=0.04 <= 1)",True,near_field_asm_4x,2.7e-05
+method_selection_map,512,fresnel,0.011297,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,0.000213,0.000379,0.243389,True,Valid Fresnel,True,near_field_asm_4x,1.9e-05
+method_selection_map,512,asm,0.011297,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,1.4e-05,1.4e-05,0.242426,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.9e-05
+method_selection_map,512,blas,0.011297,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,1.4e-05,1.4e-05,0.214678,True,Valid band-limited spectrum,True,near_field_asm_4x,1.9e-05
+method_selection_map,512,sas,0.011297,1e-05,5.9e-07,0.00512,0.000301,0.0587,0.0003,0.0587,0.0034,0.9217,0.9316,False,0.059474,0.065496,0.581978,False,"Chirp aliased / grid shrinks: Mx=0.06, My=0.06 (min M=0.06 <= 1)",True,near_field_asm_4x,1.9e-05
+method_selection_map,512,fresnel,0.016982,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,0.000126,0.000127,0.227462,True,Valid Fresnel,True,near_field_asm_4x,1e-05
+method_selection_map,512,asm,0.016982,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,2.6e-05,2.7e-05,0.228192,True,Valid fixed-grid ASM,True,near_field_asm_4x,1e-05
+method_selection_map,512,blas,0.016982,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,2.6e-05,2.7e-05,0.240577,True,Valid band-limited spectrum,True,near_field_asm_4x,1e-05
+method_selection_map,512,sas,0.016982,1e-05,8.8e-07,0.00512,0.000452,0.0882,0.000451,0.0882,0.0078,0.9646,0.9643,False,0.031266,0.031494,0.52342,False,"Chirp aliased / grid shrinks: Mx=0.09, My=0.09 (min M=0.09 <= 1)",True,near_field_asm_4x,1e-05
+method_selection_map,512,fresnel,0.025526,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,0.000114,0.000167,0.275864,True,Valid Fresnel,True,near_field_asm_4x,7.8e-05
+method_selection_map,512,asm,0.025526,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,3.1e-05,3.1e-05,0.276568,True,Valid fixed-grid ASM,True,near_field_asm_4x,7.8e-05
+method_selection_map,512,blas,0.025526,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,3.1e-05,3.1e-05,0.277132,True,Valid band-limited spectrum,True,near_field_asm_4x,7.8e-05
+method_selection_map,512,sas,0.025526,1e-05,1.33e-06,0.00512,0.000679,0.1326,0.000678,0.1326,0.0176,0.9734,0.9729,False,0.019017,0.021768,0.752019,False,"Chirp aliased / grid shrinks: Mx=0.13, My=0.13 (min M=0.13 <= 1)",True,near_field_asm_4x,7.8e-05
+method_selection_map,512,fresnel,0.038369,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,0.0001,0.000154,0.541161,True,Valid Fresnel,True,near_field_asm_4x,4e-05
+method_selection_map,512,asm,0.038369,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,5.6e-05,9.4e-05,0.568206,True,Valid fixed-grid ASM,True,near_field_asm_4x,4e-05
+method_selection_map,512,blas,0.038369,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,5.6e-05,9.4e-05,0.667211,True,Valid band-limited spectrum,True,near_field_asm_4x,4e-05
+method_selection_map,512,sas,0.038369,1e-05,1.99e-06,0.00512,0.001021,0.1993,0.001019,0.1993,0.0397,0.9762,0.9766,False,0.011445,0.01811,1.32094,False,"Chirp aliased / grid shrinks: Mx=0.20, My=0.20 (min M=0.20 <= 1)",True,near_field_asm_4x,4e-05
+method_selection_map,512,fresnel,0.057675,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,5.9e-05,7.2e-05,0.588791,True,Valid Fresnel,True,intermediate_blas_4x,0.000155
+method_selection_map,512,asm,0.057675,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,4.7e-05,5.4e-05,0.223579,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000155
+method_selection_map,512,blas,0.057675,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,1.0,1.0,True,4.7e-05,5.4e-05,0.2315,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000155
+method_selection_map,512,sas,0.057675,1e-05,3e-06,0.00512,0.001534,0.2996,0.001531,0.2996,0.0898,0.9773,0.9772,False,0.006858,0.006783,0.483929,False,"Chirp aliased / grid shrinks: Mx=0.30, My=0.30 (min M=0.30 <= 1)",True,intermediate_blas_4x,0.000155
+method_selection_map,512,fresnel,0.086693,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9998,0.9999,True,0.000116,0.000191,0.175049,True,Valid Fresnel,True,intermediate_blas_4x,0.0002
+method_selection_map,512,asm,0.086693,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9998,0.9999,True,9.8e-05,0.00017,0.195627,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.0002
+method_selection_map,512,blas,0.086693,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9998,0.9999,True,9.8e-05,0.00017,0.239189,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.0002
+method_selection_map,512,sas,0.086693,1e-05,4.5e-06,0.00512,0.002306,0.4504,0.002302,0.4504,0.2029,0.9777,0.9778,False,0.002499,0.00392,0.489372,False,"Chirp aliased / grid shrinks: Mx=0.45, My=0.45 (min M=0.45 <= 1)",True,intermediate_blas_4x,0.0002
+method_selection_map,512,fresnel,0.130313,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9893,0.9894,True,0.000171,0.00028,0.211356,True,Valid Fresnel,True,intermediate_blas_4x,0.000253
+method_selection_map,512,asm,0.130313,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9893,0.9894,True,0.000162,0.000259,0.201085,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000253
+method_selection_map,512,blas,0.130313,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9893,0.9894,True,0.000162,0.000259,0.220507,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000253
+method_selection_map,512,sas,0.130313,1e-05,6.77e-06,0.00512,0.003466,0.677,0.00346,0.677,0.4584,0.9779,0.9779,False,0.000959,0.000977,0.482341,False,"Chirp aliased / grid shrinks: Mx=0.68, My=0.68 (min M=0.68 <= 1)",True,intermediate_blas_4x,0.000253
+method_selection_map,512,fresnel,0.19588,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9775,0.9776,True,0.000343,0.000541,0.174693,True,Valid Fresnel,True,intermediate_blas_4x,0.000675
+method_selection_map,512,asm,0.19588,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9775,0.9776,True,0.000343,0.000542,0.209041,False,Chirp aliased (z > z_c=192 mm),True,intermediate_blas_4x,0.000675
+method_selection_map,512,blas,0.19588,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9775,0.9776,True,0.00034,0.000496,0.243247,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000675
+method_selection_map,512,sas,0.19588,1e-05,1.018e-05,0.00512,0.00521,1.0177,0.0052,1.0,1.0,0.978,0.978,True,0.000412,0.000598,0.59533,True,Valid SAS regime (M=1.02 > 1),True,intermediate_blas_4x,0.000675
+method_selection_map,512,fresnel,0.294437,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9648,0.9645,True,0.001236,0.001726,0.18811,True,Valid Fresnel,True,intermediate_blas_4x,0.001206
+method_selection_map,512,asm,0.294437,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9648,0.9645,True,0.001208,0.001699,0.20547,False,Chirp aliased (z > z_c=192 mm),True,intermediate_blas_4x,0.001206
+method_selection_map,512,blas,0.294437,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9644,0.9645,True,0.000824,0.000782,0.258118,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.001206
+method_selection_map,512,sas,0.294437,1e-05,1.53e-05,0.00512,0.007832,1.5297,0.007817,1.0,1.0,0.978,0.978,True,0.000425,0.000467,0.552788,True,Valid SAS regime (M=1.53 > 1),True,intermediate_blas_4x,0.001206
+method_selection_map,512,fresnel,0.442584,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9507,0.9567,True,0.01741,0.027921,0.308914,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.442584,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9508,0.9567,True,0.020557,0.036676,0.214664,False,Chirp aliased (z > z_c=192 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.442584,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.943,0.9567,True,0.011068,0.01337,0.249474,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.442584,1e-05,2.299e-05,0.00512,0.011773,2.2994,0.01175,1.0,1.0,0.978,0.9894,True,0.011603,0.01372,0.544154,True,Valid SAS regime (M=2.30 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.66527,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9233,0.9351,True,0.043483,0.043309,0.192566,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,0.66527,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9233,0.9351,True,0.045307,0.045313,0.209665,False,Chirp aliased (z > z_c=192 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.66527,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.9139,0.9351,True,0.010761,0.012122,0.227879,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.66527,1e-05,3.456e-05,0.00512,0.017696,3.4563,0.017662,1.0,1.0,0.978,0.9965,True,0.011435,0.01299,0.494441,True,Valid SAS regime (M=3.46 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,1.0,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.8794,0.8937,True,0.086384,0.136759,0.192594,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,1.0,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.8794,0.8937,True,0.084499,0.118094,0.234617,False,Chirp aliased (z > z_c=192 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,1.0,1e-05,1e-05,0.00512,0.00512,1.0,0.00511,1.0,1.0,0.862,0.8937,True,0.012239,0.01285,0.228776,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,1.0,1e-05,5.195e-05,0.00512,0.0266,5.1953,0.02047,1.0,1.0,0.978,1.0,True,0.011766,0.012712,0.474202,True,Valid SAS regime (M=5.20 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.005,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,5.2e-05,5.3e-05,0.213737,True,Valid Fresnel,True,near_field_asm_4x,4e-06
+method_selection_map,512,asm,0.005,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,3e-06,3e-06,0.228325,True,Valid fixed-grid ASM,True,near_field_asm_4x,4e-06
+method_selection_map,512,blas,0.005,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,3e-06,3e-06,0.222954,True,Valid band-limited spectrum,True,near_field_asm_4x,4e-06
+method_selection_map,512,sas,0.005,1.5e-05,1.7e-07,0.00768,8.9e-05,0.0115,8.8e-05,0.0115,0.0001,0.1598,0.0839,False,1.145909,0.725519,0.517734,False,"Chirp aliased / grid shrinks: Mx=0.01, My=0.01 (min M=0.01 <= 1)",True,near_field_asm_4x,4e-06
+method_selection_map,512,fresnel,0.007516,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,0.000107,0.000271,0.187721,True,Valid Fresnel,True,near_field_asm_4x,1.3e-05
+method_selection_map,512,asm,0.007516,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,8e-06,1.7e-05,0.198471,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.3e-05
+method_selection_map,512,blas,0.007516,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,8e-06,1.7e-05,0.205237,True,Valid band-limited spectrum,True,near_field_asm_4x,1.3e-05
+method_selection_map,512,sas,0.007516,1.5e-05,2.6e-07,0.00768,0.000133,0.0174,0.000133,0.0174,0.0003,0.2642,0.2548,False,0.276091,0.318692,0.582836,False,"Chirp aliased / grid shrinks: Mx=0.02, My=0.02 (min M=0.02 <= 1)",True,near_field_asm_4x,1.3e-05
+method_selection_map,512,fresnel,0.011297,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,0.000105,0.000247,0.235097,True,Valid Fresnel,True,near_field_asm_4x,1.2e-05
+method_selection_map,512,asm,0.011297,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,1e-05,1.9e-05,0.319835,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.2e-05
+method_selection_map,512,blas,0.011297,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,1e-05,1.9e-05,0.268329,True,Valid band-limited spectrum,True,near_field_asm_4x,1.2e-05
+method_selection_map,512,sas,0.011297,1.5e-05,3.9e-07,0.00768,0.0002,0.0261,0.0002,0.0261,0.0007,0.6811,0.6574,False,0.142161,0.162207,0.579683,False,"Chirp aliased / grid shrinks: Mx=0.03, My=0.03 (min M=0.03 <= 1)",True,near_field_asm_4x,1.2e-05
+method_selection_map,512,fresnel,0.016982,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,0.000104,0.000124,0.177585,True,Valid Fresnel,True,near_field_asm_4x,1.9e-05
+method_selection_map,512,asm,0.016982,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,1.1e-05,1.1e-05,0.231996,True,Valid fixed-grid ASM,True,near_field_asm_4x,1.9e-05
+method_selection_map,512,blas,0.016982,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,1.1e-05,1.1e-05,0.220086,True,Valid band-limited spectrum,True,near_field_asm_4x,1.9e-05
+method_selection_map,512,sas,0.016982,1.5e-05,5.9e-07,0.00768,0.000301,0.0392,0.000301,0.0392,0.0015,0.9045,0.9149,False,0.06575,0.06481,0.508591,False,"Chirp aliased / grid shrinks: Mx=0.04, My=0.04 (min M=0.04 <= 1)",True,near_field_asm_4x,1.9e-05
+method_selection_map,512,fresnel,0.025526,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,7.9e-05,8.6e-05,0.193816,True,Valid Fresnel,True,near_field_asm_4x,3.5e-05
+method_selection_map,512,asm,0.025526,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,1.8e-05,2e-05,0.219151,True,Valid fixed-grid ASM,True,near_field_asm_4x,3.5e-05
+method_selection_map,512,blas,0.025526,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,1.8e-05,2e-05,0.236125,True,Valid band-limited spectrum,True,near_field_asm_4x,3.5e-05
+method_selection_map,512,sas,0.025526,1.5e-05,8.8e-07,0.00768,0.000453,0.0589,0.000452,0.0589,0.0035,0.9505,0.9538,False,0.041044,0.042818,0.510662,False,"Chirp aliased / grid shrinks: Mx=0.06, My=0.06 (min M=0.06 <= 1)",True,near_field_asm_4x,3.5e-05
+method_selection_map,512,fresnel,0.038369,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,3.8e-05,4e-05,0.197297,True,Valid Fresnel,True,near_field_asm_4x,0.000107
+method_selection_map,512,asm,0.038369,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,3.5e-05,4.7e-05,0.197494,True,Valid fixed-grid ASM,True,near_field_asm_4x,0.000107
+method_selection_map,512,blas,0.038369,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,3.5e-05,4.7e-05,0.208719,True,Valid band-limited spectrum,True,near_field_asm_4x,0.000107
+method_selection_map,512,sas,0.038369,1.5e-05,1.33e-06,0.00768,0.00068,0.0886,0.000679,0.0886,0.0078,0.9618,0.9616,False,0.026464,0.029349,0.461486,False,"Chirp aliased / grid shrinks: Mx=0.09, My=0.09 (min M=0.09 <= 1)",True,near_field_asm_4x,0.000107
+method_selection_map,512,fresnel,0.057675,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,7e-05,0.000108,0.208324,True,Valid Fresnel,True,intermediate_blas_4x,4.9e-05
+method_selection_map,512,asm,0.057675,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,2.6e-05,3.7e-05,0.201607,True,Valid fixed-grid ASM,True,intermediate_blas_4x,4.9e-05
+method_selection_map,512,blas,0.057675,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,2.6e-05,3.7e-05,0.218988,True,Valid band-limited spectrum,True,intermediate_blas_4x,4.9e-05
+method_selection_map,512,sas,0.057675,1.5e-05,2e-06,0.00768,0.001023,0.1332,0.001021,0.1332,0.0177,0.9656,0.9665,False,0.013937,0.013166,0.46727,False,"Chirp aliased / grid shrinks: Mx=0.13, My=0.13 (min M=0.13 <= 1)",True,intermediate_blas_4x,4.9e-05
+method_selection_map,512,fresnel,0.086693,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,9.7e-05,0.000165,0.18762,True,Valid Fresnel,True,intermediate_blas_4x,0.000178
+method_selection_map,512,asm,0.086693,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,5.9e-05,9.2e-05,0.19246,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000178
+method_selection_map,512,blas,0.086693,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,5.9e-05,9.2e-05,0.234961,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000178
+method_selection_map,512,sas,0.086693,1.5e-05,3e-06,0.00768,0.001537,0.2002,0.001534,0.2002,0.0401,0.9671,0.9675,False,0.006607,0.005335,0.514384,False,"Chirp aliased / grid shrinks: Mx=0.20, My=0.20 (min M=0.20 <= 1)",True,intermediate_blas_4x,0.000178
+method_selection_map,512,fresnel,0.130313,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,6.9e-05,6.9e-05,0.209912,True,Valid Fresnel,True,intermediate_blas_4x,6.8e-05
+method_selection_map,512,asm,0.130313,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,7.5e-05,0.000109,0.236996,True,Valid fixed-grid ASM,True,intermediate_blas_4x,6.8e-05
+method_selection_map,512,blas,0.130313,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,1.0,1.0,True,7.5e-05,0.000109,0.2213,True,Valid band-limited spectrum,True,intermediate_blas_4x,6.8e-05
+method_selection_map,512,sas,0.130313,1.5e-05,4.51e-06,0.00768,0.002311,0.3009,0.002306,0.3009,0.0905,0.9677,0.9681,False,0.003341,0.003186,0.495258,False,"Chirp aliased / grid shrinks: Mx=0.30, My=0.30 (min M=0.30 <= 1)",True,intermediate_blas_4x,6.8e-05
+method_selection_map,512,fresnel,0.19588,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9997,0.9998,True,0.000215,0.000449,0.237065,True,Valid Fresnel,True,intermediate_blas_4x,0.000383
+method_selection_map,512,asm,0.19588,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9997,0.9998,True,0.000222,0.00048,0.256789,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000383
+method_selection_map,512,blas,0.19588,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9997,0.9998,True,0.000222,0.00048,0.25745,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000383
+method_selection_map,512,sas,0.19588,1.5e-05,6.78e-06,0.00768,0.003474,0.4523,0.003467,0.4523,0.2046,0.968,0.9679,False,0.001999,0.002309,0.511962,False,"Chirp aliased / grid shrinks: Mx=0.45, My=0.45 (min M=0.45 <= 1)",True,intermediate_blas_4x,0.000383
+method_selection_map,512,fresnel,0.294437,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.984,0.9841,True,0.000296,0.000424,0.234911,True,Valid Fresnel,True,intermediate_blas_4x,0.000495
+method_selection_map,512,asm,0.294437,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.984,0.9841,True,0.000288,0.000467,0.25582,True,Valid fixed-grid ASM,True,intermediate_blas_4x,0.000495
+method_selection_map,512,blas,0.294437,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.984,0.9841,True,0.000288,0.000467,0.242104,True,Valid band-limited spectrum,True,intermediate_blas_4x,0.000495
+method_selection_map,512,sas,0.294437,1.5e-05,1.02e-05,0.00768,0.005221,0.6799,0.005211,0.6799,0.4622,0.9681,0.9682,False,0.001001,0.001299,0.522159,False,"Chirp aliased / grid shrinks: Mx=0.68, My=0.68 (min M=0.68 <= 1)",True,intermediate_blas_4x,0.000495
+method_selection_map,512,fresnel,0.442584,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9667,0.9722,True,0.022139,0.025594,0.225842,True,Valid Fresnel,True,analytical_airy,0.005
+method_selection_map,512,asm,0.442584,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9667,0.9722,True,0.022139,0.025593,0.204438,False,Chirp aliased (z > z_c=433 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.442584,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9668,0.9722,True,0.022158,0.026752,0.247664,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.442584,1.5e-05,1.533e-05,0.00768,0.007848,1.0219,0.007833,1.0,1.0,0.9681,0.9728,True,0.022164,0.025667,0.50825,True,Valid SAS regime (M=1.02 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,0.66527,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9445,0.9566,True,0.02314,0.024702,0.198409,True,Valid Fresnel,True,analytical_airy,0.005
+method_selection_map,512,asm,0.66527,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9445,0.9566,True,0.023148,0.024426,0.202107,False,Chirp aliased (z > z_c=433 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,0.66527,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9435,0.9566,True,0.022685,0.024903,0.212166,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,0.66527,1.5e-05,2.304e-05,0.00768,0.011797,1.5361,0.011774,1.0,1.0,0.9681,0.9775,True,0.023262,0.025006,0.512077,True,Valid SAS regime (M=1.54 > 1),True,analytical_airy,0.005
+method_selection_map,512,fresnel,1.0,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9277,0.9351,True,0.053432,0.055298,0.242125,False,Transfer-function aliased,True,analytical_airy,0.005
+method_selection_map,512,asm,1.0,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.9277,0.9351,True,0.053474,0.059316,0.288558,False,Chirp aliased (z > z_c=433 mm),True,analytical_airy,0.005
+method_selection_map,512,blas,1.0,1.5e-05,1.5e-05,0.00768,0.00768,1.0,0.007665,1.0,1.0,0.913,0.9351,True,0.023181,0.024021,0.261865,True,Valid band-limited spectrum,True,analytical_airy,0.005
+method_selection_map,512,sas,1.0,1.5e-05,3.464e-05,0.00768,0.017733,2.309,0.017699,1.0,1.0,0.9682,0.9845,True,0.023946,0.024782,0.465442,True,Valid SAS regime (M=2.31 > 1),True,analytical_airy,0.005
+fixed_fov,256,fresnel,0.5,1e-05,1e-05,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8781,1.0,True,0.066084,0.07619,0.052,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,256,asm,0.5,1e-05,1e-05,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8781,1.0,True,0.067879,0.094862,0.046,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,256,blas,0.5,1e-05,1e-05,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8609,1.0,True,0.029491,0.017542,0.053,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,256,sas,0.5,1e-05,5.195e-05,0.00256,0.0133,5.1953,0.013248,1.0,1.0,0.978,1.0,True,0.028257,0.013233,0.1419,True,Scaled (13.3 mm),True,analytical_airy,0.005
+fixed_fov,512,fresnel,0.5,5e-06,5e-06,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8778,1.0,True,0.073288,0.114309,0.2305,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,512,asm,0.5,5e-06,5e-06,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8778,1.0,True,0.071135,0.180898,0.2298,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,512,blas,0.5,5e-06,5e-06,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8626,1.0,True,0.018678,0.01841,0.2577,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,512,sas,0.5,5e-06,5.195e-05,0.00256,0.0266,10.3906,0.026548,1.0,1.0,0.9891,1.0,True,0.016128,0.006632,0.6042,True,Scaled (26.6 mm),True,analytical_airy,0.005
+fixed_fov,1024,fresnel,0.5,2.5e-06,2.5e-06,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8774,1.0,True,0.068379,0.130841,0.9,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,1024,asm,0.5,2.5e-06,2.5e-06,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8774,1.0,True,0.067858,0.136309,1.0149,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,1024,blas,0.5,2.5e-06,2.5e-06,0.00256,0.00256,1.0,0.00256,1.0,1.0,0.8634,1.0,True,0.013962,0.018899,1.1134,True,Shared (2.56 mm),True,analytical_airy,0.005
+fixed_fov,1024,sas,0.5,2.5e-06,5.195e-05,0.00256,0.0532,20.7812,0.053148,1.0,1.0,0.9946,1.0,True,0.010367,0.003791,2.5236,True,Scaled (53.2 mm),True,analytical_airy,0.005

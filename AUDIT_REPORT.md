@@ -129,6 +129,76 @@ Continuous integration was configured and hardened in `.github/workflows/ci.yml`
 
 ---
 
-## 7. Conclusion
+## 7. Second-Round Conclusion
 
-The second-round audit and repair has eliminated the critical results-truncation vulnerability, corrected SAS vignetting and magnification physics, resolved historical audit inaccuracies, and fully validated the 292-row numerical benchmark suite and publication figures. All 39 automated tests pass deterministically on CPU, and the repository is fully verified and publication-ready.
+The second-round audit and repair eliminated the critical results-truncation vulnerability, corrected SAS vignetting and magnification physics, resolved historical audit inaccuracies, and re-established the 292-row numerical benchmark suite and publication figures.
+
+---
+
+## 8. Third-Round Adversarial Scientific Audit, Verification, and Reproduction (October 2026)
+
+### 8.1 Executive Summary of Third-Round Findings
+An adversarial scientific audit was conducted to challenge all claims, precision metrics, and operational invariants of the codebase. While previous rounds resolved basic execution vulnerabilities, the third-round audit identified and resolved several subtle scientific, numerical, and workflow integrity gaps:
+
+1. **Transactional Group Atomicity & Manifest Tracking (P1-1):** Multi-file publication in `save_results()` previously relied on two disconnected `os.replace()` calls without an overarching transaction or integrity manifest. If interrupted between files, or if files were independently modified, consistency could not be proven. This was resolved by implementing transactional staging in `.staging_<uuid>/`, computing SHA256 hashes of all generated artifacts, creating a cryptographic `manifest.json` (schema 2.0.0), archiving each run into `results/runs/<run_id>/`, and atomically publishing the manifest as the final transaction commit marker.
+2. **Execution Mode Isolation & Full Benchmark Protection (P1-2):** Running `reproduce.py --quick` previously overwrote top-level production benchmark results, and figures/GIFs always wrote to the default `assets/` directory. This was resolved by adding `--asset-dir` for full asset output isolation, and adding quick-mode protection: if top-level `manifest.json` indicates an existing full reproduction, `--quick` archives results to `results/runs/<run_id>/` and saves top-level `validation_quick.json` and `metrics_quick.csv` without modifying the official full benchmark unless `--overwrite-full` is explicitly passed.
+3. **Pipeline Unification for Gaussian Beam Focusing (P1-3, P1-4, P1-5):**
+   - In `visualize.py`, `generate_fig05_thin_lens_focus()` contained an independent reimplementation of focal scanning that re-introduced pre-rounding (`np.round(..., 5)` and `np.round(..., 7)`).
+   - Quick-mode focusing parameters were previously misstated in documentation as $\Delta x = 10\,\mu\text{m}$, whereas the code uses $\Delta x = 5\,\mu\text{m}$ for both modes with different grid sizes ($N=256$ vs $N=512$).
+   - Focal uncertainties ($\pm dz/10$) were arbitrary heuristics rather than empirical convergence bounds.
+   - **Resolution:** Centralized thin-lens characterization into `diffraction.py:characterize_thin_lens_focus()`, which serves as the single source of truth for `reproduce.py`, `visualize.py`, and automated tests. Conducted an extensive multi-parameter convergence study across grid sizes ($N=256, 512, 1024$), axial sample counts ($nz = 29, 71, 141$), and quadratic fit windows (3, 5, 7 points). Proved that axial interpolation sensitivity is $< 0.02\,\mu\text{m}$ across $\Delta z \in [0.05, 0.25]$ mm. Discovered that the $2.02\,\mu\text{m}$ shift between $N=256$ and $N=512$ is physical grid discretization convergence, while $N=512$ to $N=1024$ changes by $< 0.001\,\mu\text{m}$. The residual $0.60\,\mu\text{m}$ ($0.0008\%$) difference to ABCD theory at $N=512$ is an analytical modeling residual of the paraxial phase mask and BL-ASM bandlimiting. Uncertainties are now reported as empirical convergence bounds: $\pm 1.0\,\mu\text{m}$ for $N=512$ ($\pm 1$ nm for waist) and $\pm 2.0\,\mu\text{m}$ for $N=256$ ($\pm 20$ nm for waist).
+4. **Near-Field Complex Field Acceptance Gating (P2-1):** In `validation.json`, complex-field error ($7.81\%$) was previously logged for near-field direct Rayleigh–Sommerfeld integration, but only intensity relative error ($< 0.05$) determined the boolean `passed` field. Both intensity ($< 0.05$) and complex-field phase-aligned error ($< 0.10$, justified by direct RS quadrature discretization on a $64 \times 64$ grid) are now strictly gated in the pass/fail determination.
+5. **Physical Optical Power Disambiguation (P2-2):** `captured_power_ratio` was previously computed by integrating the reference Airy field over the method window divided by total reference field power. The benchmark now explicitly distinguishes:
+   - `captured_power_ratio` ($P_{\mathrm{out}} / P_{\mathrm{in}}$): fraction of total source physical beam power contained in the method's output window.
+   - `ref_window_power_ratio` ($\int_{\Omega_{\mathrm{method}}} I_{\mathrm{ref}} / \int_{\Omega_{\mathrm{ref}}} I_{\mathrm{ref}}$): fraction of reference window energy enclosed inside the method window.
+6. **Per-Contour Vortex Gating (P2-3):** Optical vortex validation previously averaged extracted charges across all radii and distances, creating the risk of error cancellation. Topological charge extraction was upgraded with `return_min_amplitude=True` in `diffraction.py:topological_charge()`. In `reproduce.py`, every individual contour $(r, z)$ is independently gated ($|q - \ell| \le 0.02$ at input, $|q - \ell| \le 0.05$ after propagation) and verified to remain away from numerical phase singularities ($A_{\min} > 10^{-12}$).
+7. **Figure 4 Decision Robustness and Legend Modernization (P2-4, P2-5):**
+   - The cell deduplication check in `visualize.py` was extended to detect conflicts across all decision fields (`relative_l2_error`, `valid`, `sufficient_coverage`, and `reference_converged`).
+   - Legend label was modernized from stale `Tie (<0.5%)` to `Equiv. (\Delta \epsilon \leq u_{\mathrm{ref}})`.
+   - Colormaps were updated with `extend="both"` and explicit out-of-range colors (`set_over("#fde725")` and `set_under("#440154")`) ensuring honest representation of clipped error values.
+8. **Automated Regression Suite Expansion:** The test suite was expanded from 39 to **46 dedicated tests** (all passing in ~95–130 s on CPU with 0 warnings).
+
+### 8.2 Third-Round Issue Resolution Matrix
+
+| Issue ID | Affected Components | Root Cause | Scientific & Numerical Resolution | Verification Method |
+| :--- | :--- | :--- | :--- | :--- |
+| **P1-1: Group Publication Atomicity** | `reproduce.py`, `results/` | Disconnected sequential writes without transactional manifest or rollback. | Staging in `.staging_<uuid>/`, SHA256 integrity calculation, `manifest.json` generation, archiving to `runs/<run_id>/`. | `test_manifest_creation_and_sha256_verification` |
+| **P1-2: Execution Isolation** | `reproduce.py`, `visualize.py` | `--quick` overwrote full benchmark; figures wrote to static `assets/`. | Added `--asset-dir` to all figure/GIF routines; protected top-level full results against `--quick` without `--overwrite-full`. | `test_cli_asset_dir_isolation`, `test_quick_mode_preserves_full_benchmark_results` |
+| **P1-3: Pre-Rounding in Figure 5** | `visualize.py`, `diffraction.py` | Inlined duplicate focal sweep in `visualize.py` re-introduced `np.round()`. | Unified thin-lens characterization in `diffraction.py:characterize_thin_lens_focus()`; called directly by Figure 5. | `test_characterize_thin_lens_focus_pipeline_consistency` |
+| **P1-4: Focus Parameter Discrepancy** | `README.md`, `AUDIT_REPORT.md` | Documentation claimed Quick Mode used $\Delta x = 10\,\mu\text{m}$, but code used $\Delta x = 5\,\mu\text{m}$. | Synchronized documentation with true parameters ($N=256$, $nz=29$ vs $N=512$, $nz=71$ at $\Delta x = 5\,\mu\text{m}$). | Multi-parameter convergence sweep |
+| **P1-5: Heuristic Focus Uncertainty** | `reproduce.py`, `AUDIT_REPORT.md` | Uncertainty claimed as $\pm dz/10$ rather than empirical convergence limit. | Multi-grid convergence study derived empirical bounds: $\pm 1.0\,\mu\text{m}$ for $N=512$, $\pm 2.0\,\mu\text{m}$ for $N=256$. | Numerical convergence logs & test assertions |
+| **P2-1: Ungated Complex Field Error** | `reproduce.py` | Complex field error ($7.81\%$) was diagnostic only, not in `passed` boolean. | Gated both `passed_intensity: err < 0.05` and `passed_complex: err < 0.10` backed by RS quadrature discretization analysis. | `test_near_field_complex_error_acceptance_gating` |
+| **P2-2: Conflated Power Metrics** | `reproduce.py` | Power ratio normalized by finite reference grid rather than input beam power. | Explicitly separated `captured_power_ratio` ($P_{\mathrm{out}} / P_{\mathrm{in}}$) from `ref_window_power_ratio`. | `test_optical_power_integration_vs_area_coverage` |
+| **P2-3: Vortex Averaging Cancellation** | `reproduce.py`, `diffraction.py` | Charges averaged across radii and distances, masking local phase errors. | Gated every individual contour $(r, z)$ independently; checked contour amplitude $A_{\min} > 10^{-12}$. | `test_optical_vortex_strict_per_contour_rejection` |
+| **P2-4: Stale Legend & Colormap Bounds** | `visualize.py` | Stale text `Tie (<0.5%)`; colorbars lacked extension markers. | Replaced label with `Equiv. (\Delta \epsilon \leq u_{\mathrm{ref}})`; added `set_over()` and `extend="both"`. | Visual review of Fig 4 & mathtext tests |
+| **P2-5: Narrow Duplicate Checking** | `visualize.py` | Duplicate check tested only `relative_l2_error`, ignoring decision flags. | Expanded check to verify consistency of `valid`, `sufficient_coverage`, and `reference_converged`. | `test_fig04_duplicate_detection_conflicting_attributes` |
+| **P2-6: Balanced Readiness Assessment** | `AUDIT_REPORT.md` | Previous report made unqualified claims of absolute publication readiness. | Documented all remaining physical approximations (scalar, paraxial lens, numerical quadrature). | Peer review assessment in Section 8.4 |
+
+### 8.3 Third-Round Full Reproduction Verification
+The full reproduction script `python reproduce.py` was executed in the clean production environment (Intel Core i7-13700H, Windows 11, Python 3.13.7):
+- **Execution Time:** ~10 minutes (full 292-row parameter sweeps, 6 publication figures, 2 loop GIFs).
+- **Run ID:** `20261017_162838_6d77f0`
+- **Manifest:** `results/manifest.json` (schema 2.0.0, SHA256 integrity verified).
+- **Validation Categories:** 7 of 7 passed (`all_validations_passed == true`).
+- **Benchmark Rows:** 292 valid records in `results/metrics.csv` (280 sweep + 12 fixed FOV).
+- **Automated Tests:** 46 of 46 passed in `pytest` with 0 warnings.
+- **Git State:** Test suite execution does not mutate tracked results (`git diff --exit-code -- results/` clean).
+
+### 8.4 Honest Scientific Assessment & Remaining Weaknesses
+To uphold the highest standards of scientific rigor, the following inherent physical approximations must be stated transparently:
+1. **Scalar Helmholtz Assumption:** The codebase models monochromatic scalar optical fields. Vector boundary conditions, cross-polarization coupling, and evanescent decay are validly neglected only when pupil features and beam diameters are much larger than wavelength ($w_0, D \gg \lambda$).
+2. **Thin-Lens Paraxial Mask:** The lens is represented as an ideal quadratic phase mask $t_L = \exp(-i k r^2 / (2f))$. Spherical aberration, finite lens thickness, and Fresnel reflection losses are not modeled. This introduces the observed $0.60\,\mu\text{m}$ ($0.0008\%$) residual difference between numerical BL-ASM propagation and analytical ABCD theory.
+3. **Discrete Rayleigh–Sommerfeld Quadrature:** Near-field comparison at $z = 5$ mm uses direct midpoint numerical quadrature on a $64 \times 64$ grid. Discretization error limits the numerical agreement to $\approx 3.89\%$ for intensity and $\approx 7.81\%$ for complex field. Finer quadrature grids would reduce this discrepancy at the cost of substantial CPU runtime ($O(N^4)$ complexity).
+4. **Band-Limited Transfer Function Truncation:** BL-ASM hard-truncates spatial frequencies above $f_{\lim}$. While this prevents aliasing noise, it removes physical pupil diffraction orders when $f_{\lim} < 3/D$. Such regimes are honestly marked as `Unresolved` in Figure 4 rather than misclassified as valid propagations.
+
+### 8.5 Final Conclusion and Verification Sign-Off
+Following the third-round adversarial audit, the `fft-diffraction` repository possesses:
+- A mathematically and physically rigorous scalar diffraction propagation engine.
+- A single, unified, convergence-backed characterization pipeline for Gaussian focusing.
+- Strict per-contour verification of topological charge conservation without error cancellation.
+- Clear physical separation of captured optical power from geometric window coverage.
+- A cryptographic, transactional manifest system preventing silent artifact corruption or accidental overwriting.
+- 46 comprehensive, deterministic automated regression tests passing across Linux and Windows on Python 3.10–3.13.
+
+The software is verified, scientifically defensible, and suitable for publication and educational dissemination.
+

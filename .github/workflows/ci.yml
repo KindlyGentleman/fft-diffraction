@@ -76,5 +76,18 @@ jobs:
           for r in reader:
               assert r['experiment'] in ('method_selection_map', 'fixed_fov'), f'Unknown experiment: {r[\"experiment\"]}'
               assert float(r['relative_l2_error']) >= 0.0, f'Negative error: {r}'
-          print('Artifact verification passed successfully.')
+
+          # 3. Validate manifest.json and cryptographic hash integrity
+          import hashlib
+          assert os.path.isfile('results/manifest.json'), 'manifest.json missing'
+          with open('results/manifest.json', 'r') as f:
+              man = json.load(f)
+          assert man['all_validations_passed'] is True, 'Manifest reports failing validations'
+          for fname in ('validation.json', 'metrics.csv'):
+              fpath = os.path.join('results', fname)
+              expected_sha = man['files'][fname]['sha256']
+              actual_sha = hashlib.sha256(open(fpath, 'rb').read()).hexdigest()
+              assert actual_sha == expected_sha, f'Hash mismatch for {fname}: {actual_sha} vs {expected_sha}'
+          print('Artifact and cryptographic manifest verification passed successfully.')
           "
+

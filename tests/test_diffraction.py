@@ -1121,3 +1121,195 @@ def test_sas_validity_nonsquare_2d_vignetting():
     assert not v_swap_above
     assert "Vignetting limit exceeded" in r_swap_above
 
+
+def test_manifest_creation_and_sha256_verification(tmp_path):
+    """Verify that save_results creates manifest.json with valid SHA256 hashes and run archiving."""
+    import reproduce
+    import os
+    import json
+    import hashlib
+
+    test_out = str(tmp_path / "manifest_test")
+    val_sample = {
+        "test_check": {"passed": True, "value": 42}
+    }
+    met_sample = [
+        {"experiment": "test_exp", "method": "blas", "relative_l2_error": 0.001, "valid": True}
+    ]
+
+    manifest = reproduce.save_results(val_sample, met_sample, output_dir=test_out, quick=False)
+
+    assert manifest["schema_version"] == "2.0.0"
+    assert manifest["execution_mode"] == "full"
+    assert manifest["all_validations_passed"] is True
+    run_id = manifest["run_id"]
+
+    # Verify top-level files exist
+    val_file = os.path.join(test_out, "validation.json")
+    met_file = os.path.join(test_out, "metrics.csv")
+    man_file = os.path.join(test_out, "manifest.json")
+    assert os.path.exists(val_file)
+    assert os.path.exists(met_file)
+    assert os.path.exists(man_file)
+
+    # Verify SHA256 integrity
+    def get_sha256(path):
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            h.update(f.read())
+        return h.hexdigest()
+
+    assert manifest["files"]["validation.json"]["sha256"] == get_sha256(val_file)
+    assert manifest["files"]["metrics.csv"]["sha256"] == get_sha256(met_file)
+
+    # Verify run archiving in runs/<run_id>/
+    run_dir = os.path.join(test_out, "runs", run_id)
+    assert os.path.exists(run_dir)
+    assert os.path.exists(os.path.join(run_dir, "validation.json"))
+    assert os.path.exists(os.path.join(run_dir, "metrics.csv"))
+    assert os.path.exists(os.path.join(run_dir, "manifest.json"))
+
+
+def test_quick_mode_preserves_full_benchmark_results(tmp_path):
+    """Verify that quick mode preserves existing full benchmark results unless overwrite_full=True."""
+    import reproduce
+    import os
+    import json
+
+    test_out = str(tmp_path / "quick_protect_test")
+    os.makedirs(test_out, exist_ok=True)
+
+    # Seed full run
+    seed_val = {"official_full": {"passed": True}}
+    seed_met = [{"experiment": "full_bench", "method": "blas", "N": 512}]
+    reproduce.save_results(seed_val, seed_met, output_dir=test_out, quick=False)
+
+    orig_val_bytes = open(os.path.join(test_out, "validation.json"), "rb").read()
+    orig_met_bytes = open(os.path.join(test_out, "metrics.csv"), "rb").read()
+
+    # Now execute save_results in quick mode without overwrite_full
+    quick_val = {"quick_check": {"passed": True}}
+    quick_met = [{"experiment": "quick_bench", "method": "blas", "N": 128}]
+    reproduce.save_results(quick_val, quick_met, output_dir=test_out, quick=True, overwrite_full=False)
+
+    # Top-level files MUST be unchanged
+    assert open(os.path.join(test_out, "validation.json"), "rb").read() == orig_val_bytes
+    assert open(os.path.join(test_out, "metrics.csv"), "rb").read() == orig_met_bytes
+
+    # Quick results must be written to validation_quick.json and metrics_quick.csv
+    assert os.path.exists(os.path.join(test_out, "validation_quick.json"))
+    assert os.path.exists(os.path.join(test_out, "metrics_quick.csv"))
+    with open(os.path.join(test_out, "validation_quick.json"), "r", encoding="utf-8") as f:
+        q_val_data = json.load(f)
+    assert "quick_check" in q_val_data
+
+    # Now execute with overwrite_full=True
+    reproduce.save_results(quick_val, quick_met, output_dir=test_out, quick=True, overwrite_full=True)
+    with open(os.path.join(test_out, "validation.json"), "r", encoding="utf-8") as f:
+        overwritten_data = json.load(f)
+    assert "quick_check" in overwritten_data
+
+
+def test_cli_asset_dir_isolation(tmp_path):
+    """Verify that CLI --asset-dir flag isolates figures without modifying default assets/."""
+    import subprocess
+    import sys
+    import os
+
+    custom_assets = str(tmp_path / "custom_assets")
+    cmd = [
+        sys.executable,
+        "reproduce.py",
+        "--figure-only",
+        "--asset-dir",
+        custom_assets,
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 0, f"Error: {res.stderr}"
+
+    # Verify figures exist in custom_assets
+    assert os.path.exists(os.path.join(custom_assets, "fig01_aperture_diffraction.png"))
+    assert os.path.exists(os.path.join(custom_assets, "fig01_aperture_diffraction.pdf"))
+    assert os.path.exists(os.path.join(custom_assets, "fig05_thin_lens_focus.png"))
+
+
+def test_characterize_thin_lens_focus_pipeline_consistency():
+    """Verify characterize_thin_lens_focus numerical accuracy and unrounded consistency."""
+    from diffraction import characterize_thin_lens_focus, gaussian_beam_abcd
+
+    res = characterize_thin_lens_focus(quick=True)
+    assert res["passed"] is True
+    assert res["focus_z_relative_error"] < 0.001
+    assert res["waist_relative_error"] < 0.005
+    assert res["focus_z_uncertainty_m"] == 2.0e-6
+    assert res["fit_method"] == "quadratic_interpolation"
+
+
+def test_optical_vortex_strict_per_contour_rejection():
+    """Verify that a single bad contour fails optical vortex validation."""
+    from diffraction import create_grid, gaussian_field, spiral_phase, propagate_blas, topological_charge
+    import numpy as np
+
+    grid = create_grid(nx=128, ny=128, dx=10e-6, dy=10e-6)
+    u_gauss = gaussian_field(grid, waist=3e-4)
+    t_v = spiral_phase(grid, charge=1)
+    u_vortex = u_gauss * t_v
+
+    # Contour at origin (r=0) passes through the phase singularity / null amplitude
+    q_null, min_amp_null = topological_charge(u_vortex, grid, radius=0.0, num_points=180, return_min_amplitude=True)
+    assert min_amp_null < 1e-12
+
+    # Normal contour at r=1.5e-4 is well outside the dark core
+    q_good, min_amp_good = topological_charge(u_vortex, grid, radius=1.5e-4, num_points=180, return_min_amplitude=True)
+    assert abs(q_good - 1.0) < 0.02
+    assert min_amp_good > 1e-4
+
+
+def test_near_field_complex_error_acceptance_gating():
+    """Verify that near-field direct integration validates both intensity and complex-field errors."""
+    from reproduce import run_validations
+
+    # Run validations in quick mode
+    val = run_validations(quick=True)
+    nf_check = val["near_field_direct_integration"]
+
+    assert "passed_intensity" in nf_check
+    assert "passed_complex" in nf_check
+    assert nf_check["passed_intensity"] is True
+    assert nf_check["passed_complex"] is True
+    assert nf_check["passed"] is True
+    assert nf_check["relative_l2_error"] < 0.05
+    assert nf_check["complex_field_error"] < 0.10
+
+
+def test_fig04_duplicate_detection_conflicting_attributes(tmp_path):
+    """Verify that Fig 4 duplicate check raises ValueError on conflicting metadata across same cell."""
+    from visualize import generate_fig04_method_selection_map
+    import pytest
+
+    cell_base = {
+        "experiment": "method_selection_map",
+        "method": "blas",
+        "z_m": 0.05,
+        "dx_source_m": 5e-6,
+        "dx_output_m": 5e-6,
+        "relative_l2_error": 0.01,
+        "runtime_s": 0.05,
+        "valid": True,
+        "sufficient_coverage": True,
+        "reference_converged": True,
+        "ref_uncertainty": 0.005,
+    }
+
+    # Duplicate cell with conflicting valid boolean
+    cell_conflicting = dict(cell_base)
+    cell_conflicting["valid"] = False
+
+    data = [cell_base, cell_conflicting]
+    out_png = str(tmp_path / "dup_test.png")
+    out_pdf = str(tmp_path / "dup_test.pdf")
+
+    with pytest.raises(ValueError, match="Conflicting duplicate benchmark records"):
+        generate_fig04_method_selection_map(metrics_data=data, output_png=out_png, output_pdf=out_pdf)
+
+

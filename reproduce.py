@@ -5,13 +5,20 @@ Runs validation tests, generates metrics tables, and renders publication assets.
 
 import argparse
 import csv
+import hashlib
 import json
 import os
+import platform
+import shutil
+import subprocess
 import sys
 import time
+import uuid
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Tuple
 
 import numpy as np
+import scipy
 from scipy.fft import fft2, ifft2, fftshift, ifftshift
 
 from diffraction import (
@@ -44,6 +51,7 @@ from diffraction import (
     spiral_phase,
     topological_charge,
     gaussian_beam_abcd,
+    characterize_thin_lens_focus,
     check_sas_validity,
     measure_beam_radius,
     beam_waist_second_moment,
@@ -65,6 +73,15 @@ from visualize import (
     generate_primary_loop_gif,
     generate_error_loop_gif,
 )
+
+
+def _compute_sha256(filepath: str) -> str:
+    """Compute hex SHA256 digest of a file for integrity manifests."""
+    hasher = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 def run_validations(quick: bool = False) -> Dict[str, Any]:
@@ -189,75 +206,44 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
     err_rs = float(np.linalg.norm(np.abs(u_blas_sub)**2 - np.abs(u_rs)**2) / np.linalg.norm(np.abs(u_rs)**2))
     err_complex_rs, opt_phase_rs = compute_complex_field_error(u_blas_sub, u_rs)
 
+    # Acceptance gating: intensity relative L2 < 5% and phase-aligned complex-field error < 10%
+    # Tolerance is physically justified by numerical quadrature discretization of direct RS integral on 64x64 grid
+    passed_intensity = bool(err_rs < 0.05)
+    passed_complex = bool(err_complex_rs < 0.10)
     results["near_field_direct_integration"] = {
-        "passed": bool(err_rs < 0.05),
+        "passed": bool(passed_intensity and passed_complex),
+        "passed_intensity": passed_intensity,
+        "passed_complex": passed_complex,
         "relative_l2_error": float(err_rs),
         "complex_field_error": float(err_complex_rs),
         "optimal_phase_alignment_rad": float(opt_phase_rs),
+        "quadrature_grid": "64x64",
     }
 
     # Test 5: Thin-lens focusing against ABCD Gaussian beam theory
-    n_lens = 256 if quick else 512
-    dx_lens = 5e-6
-    w0_lens = 3.0e-4
-    f_lens = 75e-3
-
-    grid_lens = create_grid(nx=n_lens, ny=n_lens, dx=dx_lens, dy=dx_lens)
-    u_gauss_in = gaussian_field(grid_lens, waist=w0_lens)
-    t_lens = thin_lens_phase(grid_lens, wavelength, f_lens)
-    u_lens = u_gauss_in * t_lens
-
-    _, _, z_focus_th, w_focus_th = gaussian_beam_abcd(w0_lens, wavelength, f_lens, z=f_lens)
-
-    # Search axial range with dense z sweep
-    z_scan_min = 70.0e-3
-    z_scan_max = 77.0e-3
-    nz_focus_scan = 29 if quick else 71
-    z_scan = np.linspace(z_scan_min, z_scan_max, nz_focus_scan)
-    waists_meas = []
-    waists_th = []
-
-    for z_i in z_scan:
-        u_zi = propagate_blas(u_lens, wavelength, z=z_i, dx=dx_lens, dy=dx_lens, padding=2)
-        # Calculate second-moment beam waist with physical pixel-area weighting
-        w_m = measure_beam_radius(np.abs(u_zi)**2, grid_lens.x, grid_lens.y, roi_radius=4.0 * w_focus_th)
-        w_t, _, _, _ = gaussian_beam_abcd(w0_lens, wavelength, f_lens, z_i)
-        waists_meas.append(w_m)
-        waists_th.append(w_t)
-
-    min_idx = int(np.argmin(waists_meas))
-    # Local quadratic fit (5 adjacent points) around the discrete minimum to find continuous focal minimum
-    fit_slice = slice(max(0, min_idx - 2), min(len(z_scan), min_idx + 3))
-    p_fit = np.polyfit(z_scan[fit_slice], np.array(waists_meas)[fit_slice], 2)
-    z_focus_meas = float(-p_fit[1] / (2.0 * p_fit[0]))
-    w_focus_meas = float(np.polyval(p_fit, z_focus_meas))
-
-    # Evaluate true relative errors from raw unrounded measurements
-    pos_err_rel = float(abs(z_focus_meas - z_focus_th) / z_focus_th)
-    waist_err_rel = float(abs(w_focus_meas - w_focus_th) / w_focus_th)
-    beam_radius_l2 = float(np.linalg.norm(np.array(waists_meas) - np.array(waists_th)) / np.linalg.norm(np.array(waists_th)))
-
-    dz_step = float(z_scan[1] - z_scan[0])
-    focus_uncertainty = dz_step / 10.0
-    waist_uncertainty = 1.0e-7
-
-    results["thin_lens_focus"] = {
-        "passed": bool(pos_err_rel < 0.02 and waist_err_rel < 0.03),
-        "focus_z_theory_m": float(z_focus_th),
-        "focus_z_measured_m": float(z_focus_meas),
-        "focus_z_relative_error": float(pos_err_rel),
-        "focus_z_uncertainty_m": float(focus_uncertainty),
-        "waist_theory_m": float(w_focus_th),
-        "waist_measured_m": float(w_focus_meas),
-        "waist_relative_error": float(waist_err_rel),
-        "waist_uncertainty_m": float(waist_uncertainty),
-        "beam_radius_l2_error": float(beam_radius_l2),
-        "z_step_m": float(dz_step),
-        "fit_method": "quadratic_interpolation",
-        "precision_note": f"Focus position {z_focus_meas*1e3:.4f} mm (raw rel err {pos_err_rel*100:.4f}%), waist {w_focus_meas*1e6:.3f} um (raw rel err {waist_err_rel*100:.4f}%)",
-    }
+    # Evaluated via unified characterize_thin_lens_focus pipeline without pre-rounding
+    res_lens = characterize_thin_lens_focus(
+        w0=3.0e-4,
+        wavelength=wavelength,
+        focal_length=75e-3,
+        nx=256 if quick else 512,
+        ny=256 if quick else 512,
+        dx=5e-6,
+        dy=5e-6,
+        z_scan_min=70.0e-3,
+        z_scan_max=77.0e-3,
+        n_z_samples=29 if quick else 71,
+        fit_window_points=5,
+    )
+    results["thin_lens_focus"] = res_lens
 
     # Test 6: Optical vortex topological charge conservation
+    n_vortex = 256 if quick else 512
+    dx_vortex = 5e-6
+    w0_vortex = 3.0e-4
+    grid_vortex = create_grid(nx=n_vortex, ny=n_vortex, dx=dx_vortex, dy=dx_vortex)
+    u_gauss_vortex = gaussian_field(grid_vortex, waist=w0_vortex)
+
     charges_to_test = [1, 2] if quick else [1, 2, 3, -1]
     radii_to_test = [1.5e-4] if quick else [1.2e-4, 1.5e-4, 1.8e-4]
     distances_to_test = [0.20] if quick else [0.10, 0.20, 0.30]
@@ -265,31 +251,49 @@ def run_validations(quick: bool = False) -> Dict[str, Any]:
     vortex_passed = True
 
     for ell in charges_to_test:
-        t_sp = spiral_phase(grid_lens, charge=ell)
-        u_v = u_gauss_in * t_sp
+        t_sp = spiral_phase(grid_vortex, charge=ell)
+        u_v = u_gauss_vortex * t_sp
 
-        # Measure charge on input across multiple radii
-        q_in_runs = [topological_charge(u_v, grid_lens, radius=r, num_points=360) for r in radii_to_test]
+        # Measure charge on input across multiple radii with individual contour gating
+        q_in_runs = []
+        amp_in_runs = []
+        for r in radii_to_test:
+            q_meas, min_amp = topological_charge(u_v, grid_vortex, radius=r, num_points=360, return_min_amplitude=True)
+            q_in_runs.append(q_meas)
+            amp_in_runs.append(min_amp)
+            # Gate every individual contour independently: phase accuracy and amplitude away from numerical null
+            if abs(q_meas - ell) > 0.02 or min_amp < 1e-12:
+                vortex_passed = False
+
         q_in = float(np.mean(q_in_runs))
+        max_err_in = float(max(abs(q - ell) for q in q_in_runs))
 
         # Propagate to multiple distances and test across multiple radii
         q_out_all = []
+        amp_out_all = []
+        max_err_out = 0.0
         for z_v in distances_to_test:
-            u_v_prop = propagate_blas(u_v, wavelength, z=z_v, dx=dx_lens, dy=dx_lens, padding=2)
-            q_out_all.extend([topological_charge(u_v_prop, grid_lens, radius=r, num_points=360) for r in radii_to_test])
+            u_v_prop = propagate_blas(u_v, wavelength, z=z_v, dx=dx_vortex, dy=dx_vortex, padding=2)
+            for r in radii_to_test:
+                q_meas, min_amp = topological_charge(u_v_prop, grid_vortex, radius=r, num_points=360, return_min_amplitude=True)
+                q_out_all.append(q_meas)
+                amp_out_all.append(min_amp)
+                err_c = abs(q_meas - ell)
+                if err_c > max_err_out:
+                    max_err_out = err_c
+                if err_c > 0.05 or min_amp < 1e-12:
+                    vortex_passed = False
 
         q_out = float(np.mean(q_out_all))
-        err_in = abs(q_in - ell)
-        err_out = abs(q_out - ell)
-        if err_in > 0.02 or err_out > 0.05:
-            vortex_passed = False
-
         vortex_results.append({
             "charge_requested": int(ell),
             "charge_input_measured": float(q_in),
             "charge_output_measured": float(q_out),
-            "error_input": float(err_in),
-            "error_output": float(err_out),
+            "error_input_mean": float(abs(q_in - ell)),
+            "error_output_mean": float(abs(q_out - ell)),
+            "max_contour_error_input": float(max_err_in),
+            "max_contour_error_output": float(max_err_out),
+            "min_amplitude_observed": float(min(min(amp_in_runs), min(amp_out_all))),
             "radii_tested_m": [float(r) for r in radii_to_test],
             "distances_tested_m": [float(d) for d in distances_to_test],
         })
@@ -457,9 +461,14 @@ def run_method_selection_sweep(quick: bool = False) -> List[Dict[str, Any]]:
                 cov_y = float(min(1.0, grid_out.Sy / w_target))
                 coverage_2d = float(cov_x * cov_y)
 
-                # Reference optical power captured inside method output FOV
+                # Optical power metrics:
+                # 1. Total beam power captured inside method output FOV relative to total physical input beam power
+                p_out = float(np.sum(np.abs(u_out)**2) * grid_out.dx * grid_out.dy)
+                captured_power_ratio = float(p_out / max(1e-15, area_discrete))
+
+                # 2. Reference field power enclosed inside method's output spatial window
                 mask_ref_in_method = (np.abs(grid_ref_4x.X) <= grid_out.Sx / 2.0) & (np.abs(grid_ref_4x.Y) <= grid_out.Sy / 2.0)
-                captured_power_ratio = float(np.sum(i_ref[mask_ref_in_method]) / max(1e-15, np.sum(i_ref)))
+                ref_win_power_ratio = float(np.sum(i_ref[mask_ref_in_method]) / max(1e-15, np.sum(i_ref)))
 
                 # Strict coverage criterion: requires covering >= 95% of target linear extent and >= 90% 2D extent
                 sufficient_coverage = bool(cov_x >= 0.95 and coverage_2d >= 0.90)
@@ -485,6 +494,7 @@ def run_method_selection_sweep(quick: bool = False) -> List[Dict[str, Any]]:
                     "coverage_ratio": round(float(cov_x), 4),
                     "coverage_2d": round(float(coverage_2d), 4),
                     "captured_power_ratio": round(float(captured_power_ratio), 4),
+                    "ref_window_power_ratio": round(float(ref_win_power_ratio), 4),
                     "sufficient_coverage": bool(sufficient_coverage),
                     "relative_l2_error": round(float(rel_l2), 6),
                     "peak_normalized_error": round(float(peak_l2), 6),
@@ -519,6 +529,7 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
         grid = create_grid(nx=n, ny=n, dx=dx, dy=dx)
         u_in = circular_aperture(grid, radius=radius)
         i_ref = airy_pattern(grid, wavelength, z=z_eval, radius=radius)
+        p_in_ff = float(np.sum(np.abs(u_in)**2) * dx * dx)
 
         for method in ["fresnel", "asm", "blas", "sas"]:
             t0 = time.perf_counter()
@@ -536,6 +547,8 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
             t_elapsed = time.perf_counter() - t0
 
             i_out = np.abs(u_out)**2
+            p_out_ff = float(np.sum(i_out) * grid_out.dx * grid_out.dy)
+            cap_p_ratio = float(p_out_ff / max(1e-15, p_in_ff))
 
             if method == "sas":
                 i_ref_sas = airy_pattern(grid_out, wavelength, z=z_eval, radius=radius)
@@ -566,12 +579,19 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
                 "output_fov_m": round(fov_out, 6),
                 "magnification": round(mag, 4),
                 "common_width_m": round(common_w, 6),
+                "coverage_ratio": 1.0,
+                "coverage_2d": 1.0,
+                "captured_power_ratio": round(cap_p_ratio, 4),
+                "ref_window_power_ratio": 1.0,
+                "sufficient_coverage": True,
                 "relative_l2_error": round(shared_raw, 6),
                 "peak_normalized_error": round(shared_peak, 6),
                 "runtime_s": round(t_elapsed, 4),
                 "valid": True,
                 "sas_reason": coverage,
                 "reference_converged": True,
+                "ref_type": "analytical_airy",
+                "ref_uncertainty": 0.005,
             })
 
     return metrics_rows
@@ -580,36 +600,150 @@ def run_benchmark_metrics(quick: bool = False) -> List[Dict[str, Any]]:
 BENCHMARK_COLUMNS = [
     "experiment", "N", "method", "z_m", "dx_source_m", "dx_output_m",
     "source_fov_m", "output_fov_m", "magnification", "common_width_m",
-    "relative_l2_error", "peak_normalized_error", "runtime_s",
-    "valid", "sas_reason", "reference_converged"
+    "coverage_ratio", "coverage_2d", "captured_power_ratio", "ref_window_power_ratio",
+    "sufficient_coverage", "relative_l2_error", "peak_normalized_error", "runtime_s",
+    "valid", "sas_reason", "reference_converged", "ref_type", "ref_uncertainty"
 ]
 
 
-def save_results(validations: Dict[str, Any], metrics: List[Dict[str, Any]], output_dir: str = "results") -> None:
-    """Save validation dictionary to JSON and benchmark metrics to CSV atomically."""
+def save_results(
+    validations: Dict[str, Any],
+    metrics: List[Dict[str, Any]],
+    output_dir: str = "results",
+    quick: bool = False,
+    overwrite_full: bool = False,
+) -> Dict[str, Any]:
+    """Save validation dictionary, benchmark CSV, and manifest atomically via transactional staging.
+
+    Guarantees:
+    1. Transactional staging: files are written and hashed in a staging directory.
+    2. Run archiving: every execution is archived to output_dir/runs/<run_id>/.
+    3. Quick-mode protection: if existing top-level results are from a full run,
+       running --quick will preserve full results unless --overwrite-full is passed.
+    4. Group publication: manifest.json contains SHA256 hashes of all published files.
+    """
     os.makedirs(output_dir, exist_ok=True)
+    run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+    staging_dir = os.path.join(output_dir, f".staging_{uuid.uuid4().hex[:8]}")
+    os.makedirs(staging_dir, exist_ok=True)
 
-    val_path = os.path.join(output_dir, "validation.json")
-    val_tmp = os.path.join(output_dir, "validation.json.tmp")
-    with open(val_tmp, "w", encoding="utf-8") as f:
-        json.dump(validations, f, indent=2)
+    try:
+        val_path_stage = os.path.join(staging_dir, "validation.json")
+        with open(val_path_stage, "w", encoding="utf-8") as f:
+            json.dump(validations, f, indent=2)
 
-    met_path = os.path.join(output_dir, "metrics.csv")
-    met_tmp = os.path.join(output_dir, "metrics.csv.tmp")
-    if metrics:
-        fieldnames = list(metrics[0].keys())
-        with open(met_tmp, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(metrics)
-    else:
-        with open(met_tmp, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=BENCHMARK_COLUMNS)
-            writer.writeheader()
+        met_path_stage = os.path.join(staging_dir, "metrics.csv")
+        if metrics:
+            fieldnames = list(metrics[0].keys())
+            with open(met_path_stage, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(metrics)
+        else:
+            with open(met_path_stage, "w", newline="", encoding="utf-8") as f:
+                writer = csv.DictWriter(f, fieldnames=BENCHMARK_COLUMNS)
+                writer.writeheader()
 
-    # Atomic rename once both temporary files are serialized successfully
-    os.replace(val_tmp, val_path)
-    os.replace(met_tmp, met_path)
+        val_sha = _compute_sha256(val_path_stage)
+        met_sha = _compute_sha256(met_path_stage)
+        val_bytes = os.path.getsize(val_path_stage)
+        met_bytes = os.path.getsize(met_path_stage)
+
+        git_rev = "unknown"
+        try:
+            res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+            git_rev = res.stdout.strip()
+        except Exception:
+            pass
+
+        all_val_passed = bool(validations) and all(v.get("passed", False) for v in validations.values())
+
+        manifest = {
+            "schema_version": "2.0.0",
+            "run_id": run_id,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "execution_mode": "quick" if quick else "full",
+            "git_commit": git_rev,
+            "platform": {
+                "system": platform.platform(),
+                "python": sys.version.split()[0],
+                "numpy": np.__version__,
+                "scipy": scipy.__version__,
+            },
+            "files": {
+                "validation.json": {
+                    "filename": "validation.json",
+                    "sha256": val_sha,
+                    "size_bytes": val_bytes,
+                    "num_checks": len(validations),
+                    "all_passed": all_val_passed,
+                },
+                "metrics.csv": {
+                    "filename": "metrics.csv",
+                    "sha256": met_sha,
+                    "size_bytes": met_bytes,
+                    "num_records": len(metrics),
+                },
+            },
+            "all_validations_passed": all_val_passed,
+        }
+
+        manifest_path_stage = os.path.join(staging_dir, "manifest.json")
+        with open(manifest_path_stage, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2)
+
+        # 1. Archive run to output_dir/runs/<run_id>/
+        run_archive_dir = os.path.join(output_dir, "runs", run_id)
+        os.makedirs(run_archive_dir, exist_ok=True)
+        shutil.copy2(val_path_stage, os.path.join(run_archive_dir, "validation.json"))
+        shutil.copy2(met_path_stage, os.path.join(run_archive_dir, "metrics.csv"))
+        shutil.copy2(manifest_path_stage, os.path.join(run_archive_dir, "manifest.json"))
+
+        # 2. Check quick-mode protection for top-level results
+        top_manifest_path = os.path.join(output_dir, "manifest.json")
+        existing_mode_full = False
+        if os.path.exists(top_manifest_path):
+            try:
+                with open(top_manifest_path, "r", encoding="utf-8") as f:
+                    top_m = json.load(f)
+                    existing_mode_full = (top_m.get("execution_mode") == "full")
+            except Exception:
+                pass
+
+        if quick and existing_mode_full and not overwrite_full:
+            # Preserve existing top-level full benchmark; save quick outputs to *_quick.*
+            quick_val = os.path.join(output_dir, "validation_quick.json")
+            quick_met = os.path.join(output_dir, "metrics_quick.csv")
+            quick_man = os.path.join(output_dir, "manifest_quick.json")
+            shutil.copy2(val_path_stage, quick_val + ".tmp")
+            shutil.copy2(met_path_stage, quick_met + ".tmp")
+            shutil.copy2(manifest_path_stage, quick_man + ".tmp")
+            os.replace(quick_val + ".tmp", quick_val)
+            os.replace(quick_met + ".tmp", quick_met)
+            os.replace(quick_man + ".tmp", quick_man)
+            print(
+                f"[INFO] Preserved existing full benchmark results in {output_dir}/. "
+                f"Quick results saved to runs/{run_id}/ and {output_dir}/*_quick.*. "
+                f"Pass --overwrite-full to replace top-level files.",
+                flush=True
+            )
+        else:
+            # Atomically publish to top-level output_dir
+            val_top = os.path.join(output_dir, "validation.json")
+            met_top = os.path.join(output_dir, "metrics.csv")
+            man_top = os.path.join(output_dir, "manifest.json")
+            shutil.copy2(val_path_stage, val_top + ".tmp")
+            shutil.copy2(met_path_stage, met_top + ".tmp")
+            shutil.copy2(manifest_path_stage, man_top + ".tmp")
+            os.replace(val_top + ".tmp", val_top)
+            os.replace(met_top + ".tmp", met_top)
+            os.replace(man_top + ".tmp", man_top)
+
+        return manifest
+
+    finally:
+        if os.path.exists(staging_dir):
+            shutil.rmtree(staging_dir, ignore_errors=True)
 
 
 def main():
@@ -619,38 +753,39 @@ def main():
     parser.add_argument("--gif-only", action="store_true", help="Only generate animated loop GIFs.")
     parser.add_argument("--all", action="store_true", help="Run validation, benchmarks, and all figures and GIFs.")
     parser.add_argument("--output-dir", type=str, default="results", help="Directory to save numerical results.")
+    parser.add_argument("--asset-dir", type=str, default="assets", help="Directory to save figures and animations.")
+    parser.add_argument("--overwrite-full", action="store_true", help="Allow --quick mode to overwrite existing full reproduction results in top-level output directory.")
     args = parser.parse_args()
 
     if args.figure_only:
         print("Generating Figures 1 through 6...")
-        generate_fig01_aperture_diffraction()
-        generate_fig02_methods_errors()
-        generate_fig03_results_profiles()
-        generate_fig04_method_selection_map()
-        generate_fig05_thin_lens_focus()
-        generate_fig06_vortex_beam()
-        print("Figures saved in assets/")
+        generate_fig01_aperture_diffraction(asset_dir=args.asset_dir)
+        generate_fig02_methods_errors(asset_dir=args.asset_dir)
+        generate_fig03_results_profiles(asset_dir=args.asset_dir)
+        generate_fig04_method_selection_map(asset_dir=args.asset_dir)
+        generate_fig05_thin_lens_focus(asset_dir=args.asset_dir)
+        generate_fig06_vortex_beam(asset_dir=args.asset_dir)
+        print(f"Figures saved in {args.asset_dir}/")
         return
 
     if args.gif_only:
         print("Generating primary diffraction loop GIF...")
-        n1 = generate_primary_loop_gif()
-        print(f"Primary GIF saved to assets/diffraction_loop.gif ({n1} frames).")
+        n1 = generate_primary_loop_gif(asset_dir=args.asset_dir)
+        print(f"Primary GIF saved to {args.asset_dir}/diffraction_loop.gif ({n1} frames).")
         print("Generating error evolution loop GIF...")
-        n2 = generate_error_loop_gif()
-        print(f"Error GIF saved to assets/error_loop.gif ({n2} frames).")
+        n2 = generate_error_loop_gif(asset_dir=args.asset_dir)
+        print(f"Error GIF saved to {args.asset_dir}/error_loop.gif ({n2} frames).")
         return
 
     print("Running physical validation tests...")
     validations = run_validations(quick=args.quick)
-    all_passed = all(v["passed"] for v in validations.values())
+    all_passed = bool(validations) and all(v.get("passed", False) for v in validations.values())
     status_str = "PASS" if all_passed else "FAIL"
     print(f"Validation status: {status_str}")
 
     if not all_passed:
-        failing_tests = [k for k, v in validations.items() if not v["passed"]]
+        failing_tests = [k for k, v in validations.items() if not v.get("passed", False)]
         print(f"ERROR: Mandatory physical validation FAILED in checks: {failing_tests}", file=sys.stderr)
-        # Record failure diagnostics without overwriting or corrupting valid benchmark results
         os.makedirs(args.output_dir, exist_ok=True)
         diag_path = os.path.join(args.output_dir, "validation_failure.json")
         try:
@@ -662,26 +797,26 @@ def main():
 
     print("Benchmarking propagation methods and sampling convergence...")
     metrics = run_benchmark_metrics(quick=args.quick)
-    save_results(validations, metrics, output_dir=args.output_dir)
-    print(f"Metrics written to {os.path.join(args.output_dir, 'metrics.csv')} and {os.path.join(args.output_dir, 'validation.json')}")
+    manifest = save_results(validations, metrics, output_dir=args.output_dir, quick=args.quick, overwrite_full=args.overwrite_full)
+    print(f"Metrics written to {args.output_dir}/ (run ID: {manifest['run_id']})")
 
     print("Rendering Figures 1 through 6...")
-    generate_fig01_aperture_diffraction()
-    generate_fig02_methods_errors()
-    generate_fig03_results_profiles()
-    generate_fig04_method_selection_map(metrics_data=metrics, quick=args.quick)
-    generate_fig05_thin_lens_focus(lens_data=validations.get("thin_lens_focus"), quick=args.quick)
-    generate_fig06_vortex_beam(vortex_data=validations.get("optical_vortex"), quick=args.quick)
+    generate_fig01_aperture_diffraction(asset_dir=args.asset_dir)
+    generate_fig02_methods_errors(asset_dir=args.asset_dir)
+    generate_fig03_results_profiles(asset_dir=args.asset_dir)
+    generate_fig04_method_selection_map(metrics_data=metrics, quick=args.quick, asset_dir=args.asset_dir)
+    generate_fig05_thin_lens_focus(lens_data=validations.get("thin_lens_focus"), quick=args.quick, asset_dir=args.asset_dir)
+    generate_fig06_vortex_beam(vortex_data=validations.get("optical_vortex"), quick=args.quick, asset_dir=args.asset_dir)
     print("Figures 1 through 6 rendered successfully.")
 
     if not args.quick or args.all:
         print("Rendering animated GIFs...")
-        n1 = generate_primary_loop_gif()
+        n1 = generate_primary_loop_gif(asset_dir=args.asset_dir)
         print(f"Primary GIF saved ({n1} frames).")
-        n2 = generate_error_loop_gif()
+        n2 = generate_error_loop_gif(asset_dir=args.asset_dir)
         print(f"Error GIF saved ({n2} frames).")
     else:
-        print("Skipping animated GIF rendering in --quick mode (GIFs preserved in assets/).")
+        print(f"Skipping animated GIF rendering in --quick mode (GIFs preserved in {args.asset_dir}/).")
 
     print("All requested reproduction tasks completed successfully.")
 

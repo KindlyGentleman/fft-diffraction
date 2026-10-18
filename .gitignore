@@ -11,3 +11,9 @@ venv/
 .vscode/
 .idea/
 archive/
+
+# Reproduction run archives and temporary failure diagnostics
+results/runs/
+results/*_quick.*
+results/validation_failure.json
+results/.staging_*

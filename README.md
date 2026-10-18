@@ -26,17 +26,19 @@ Run fast verification (compact parameter sweep and figures 1 to 6):
 python reproduce.py --quick
 ```
 
-Run full reproduction suite (full sweeps, benchmarks, 6 publication figures, 2 animated GIFs, metrics CSV, and validation JSON):
+*Note: Running in `--quick` mode preserves existing full benchmark results in `results/` unless `--overwrite-full` is passed. Quick results are archived under `results/runs/<run_id>/` and saved to `validation_quick.json` and `metrics_quick.csv`.*
+
+Run full reproduction suite (full sweeps, benchmarks, 6 publication figures, 2 animated GIFs, metrics CSV, validation JSON, and cryptographic manifest):
 
 ```bash
 python reproduce.py
 ```
 
-Run figure or GIF generation only:
+Run figure or GIF generation only (supports custom output directories):
 
 ```bash
-python reproduce.py --figure-only
-python reproduce.py --gif-only
+python reproduce.py --figure-only --asset-dir assets
+python reproduce.py --gif-only --asset-dir assets
 ```
 
 ---
@@ -97,7 +99,10 @@ Evaluating propagation methods requires inspecting physical coordinates rather t
 - **Standard ASM**: For $2\times$ zero-padding ($N_{\mathrm{FFT}} = 1024$), $z_c \approx 48.1$ mm. At $z = 0.80$ m, $z / z_c \approx 16.6$, placing the simulation deep in the aliased regime. High-frequency phase wrap-around fills the core with numerical noise ($15.3\%$ shared error).
 - **BL-ASM**: Eliminates transfer-function aliasing by zeroing unresolvable spatial frequencies, dropping shared-region error to $2.8\%$. However, its fixed $2.56$ mm window cannot capture outer diffraction rings.
 - **SAS**: Destination sampling pitch expands to $\Delta x_d = 83.125\,\mu$m, yielding a cropped output field of view $S_{x,\mathrm{out}} = N \Delta x_d = 42.56$ mm ($M = 16.625$). SAS resolves the full diffraction pattern with $1.3\%$ shared-region error and $1.3\%$ full-field error.
-- **FOV Coverage vs Captured Optical Power**: Missing optical power must never be inferred directly from geometric linear or area coverage. At $z = 0.80$ m, the fixed $2.56$ mm window covers only $54.8\%$ of the $2r_1 \approx 3.46$ mm central disc area ($2.56 / 3.46 \approx 74.0\%$ linear coverage). However, because intensity is strongly peaked on-axis, 2D physical intensity integration confirms that the fixed window still captures $\approx 86.5\%$ of total beam power.
+- **FOV Coverage vs Captured Optical Power**: Missing optical power must never be inferred directly from geometric linear or area coverage. The benchmark separates:
+  1. `captured_power_ratio` ($P_{\mathrm{out}} / P_{\mathrm{in}}$): fraction of total source physical beam power contained in the method's output window.
+  2. `ref_window_power_ratio` ($\int_{\Omega_{\mathrm{method}}} I_{\mathrm{ref}} / \int_{\Omega_{\mathrm{ref}}} I_{\mathrm{ref}}$): fraction of reference window energy enclosed inside the method window.
+  At $z = 0.80$ m, the fixed $2.56$ mm window covers only $54.8\%$ of the $2r_1 \approx 3.46$ mm central disc area ($2.56 / 3.46 \approx 74.0\%$ linear coverage). However, because intensity is strongly peaked on-axis, 2D physical intensity integration confirms that the fixed window still captures $\approx 86.5\%$ of total beam power.
 
 ---
 
@@ -111,7 +116,7 @@ Diffraction fields were quantitatively verified against analytical solutions at 
 - **Airy Dark Ring Radius**: Analytical first zero is $r_1 = 1.081$ mm. Measured positions are $r_1 = 1.088$ mm for BL-ASM ($0.61\%$ discrepancy) and $r_1 = 1.086$ mm for SAS ($0.44\%$ discrepancy).
 - **Airy Radial Profile**: Relative $L_2$ error compared to analytical $J_1(q)/q$ is $1.62\%$ for BL-ASM across the fixed window and $0.36\%$ for SAS across the scaled window.
 - **Rectangular Sinc Cross-Sections**: Horizontal slice error is $1.65\%$ and vertical slice error is $2.64\%$ against theoretical $\mathrm{sinc}^2$ profiles.
-- **Near-Field Independent Benchmark**: At $z = 0.005$ m (where Fraunhofer approximations are invalid), BL-ASM was verified against independent Rayleigh-Sommerfeld direct numerical integration, agreeing within $3.89\%$ intensity relative $L_2$ error and $7.81\%$ globally phase-aligned complex-field error ($\Delta \phi = -0.0034$ rad).
+- **Near-Field Independent Benchmark**: At $z = 0.005$ m (where Fraunhofer approximations are invalid), BL-ASM was verified against independent Rayleigh-Sommerfeld direct numerical integration, agreeing within $3.89\%$ intensity relative $L_2$ error and $7.81\%$ globally phase-aligned complex-field error ($\Delta \phi = -0.0034$ rad), with both criteria strictly gated for validation pass/fail.
 
 ---
 
@@ -147,9 +152,9 @@ For input waist $w_0 = 0.30$ mm at the lens plane ($z = 0$), the Rayleigh range 
 
 $$z_f = \frac{f}{1 + (f / z_R)^2} \approx 73.5356\text{ mm}, \qquad w_0' = \frac{w_0}{\sqrt{1 + (z_R / f)^2}} \approx 41.92\,\mu\text{m}$$
 
-Numerical results from BL-ASM (measured via dense longitudinal second-moment waist scan and continuous local quadratic interpolation, $\Delta z = 0.10$ mm):
-- **Focus position:** Theory $z_f = 73.5356$ mm; measured $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0100$ mm (raw relative difference $\approx 0.0008\%$, well within the $\pm dz/10$ numerical search uncertainty).
-- **Focused beam waist:** Theory $w_0' = 41.920\,\mu$m; measured $w_{0,\mathrm{meas}}' = 41.920 \pm 0.100\,\mu$m (raw relative difference $< 0.0001\%$).
+Numerical results from BL-ASM (measured via dense longitudinal second-moment waist scan and continuous local quadratic interpolation, evaluated via unified `characterize_thin_lens_focus`):
+- **Focus position:** Theory $z_f = 73.5356$ mm; measured $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0010$ mm (raw relative difference $\approx 0.0008\%$, corresponding to a $0.60\,\mu$m residual from the thin-lens paraxial phase approximation; numerical interpolation sensitivity is $< 0.02\,\mu$m).
+- **Focused beam waist:** Theory $w_0' = 41.920\,\mu$m; measured $w_{0,\mathrm{meas}}' = 41.920 \pm 0.001\,\mu$m (raw relative difference $< 0.0001\%$, convergence uncertainty $\pm 1$ nm).
 - **Longitudinal beam radius profile error:** Full profile $L_2$ error is $0.0011\%$ across the focal sweep.
 
 ---
