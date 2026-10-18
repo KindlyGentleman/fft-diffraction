@@ -499,37 +499,88 @@ def generate_fig04_method_selection_map(
 
     # Validate uniqueness and detect conflicting duplicate (method, dx, z) cells
     seen_cells = {}
+    spatial_ref_metadata = {}
     deduped_data = []
     for r in metrics_data:
         m_name = r.get("method")
         if not m_name or "dx_source_m" not in r or "z_m" not in r:
             raise ValueError(f"Malformed metric record missing required keys: {r}")
-        key = (m_name, round(float(r["dx_source_m"]), 10), round(float(r["z_m"]), 8))
+        dx_val = round(float(r["dx_source_m"]), 10)
+        z_val = round(float(r["z_m"]), 8)
+        key = (m_name, dx_val, z_val)
+        spatial_key = (dx_val, z_val)
+
         err_val = float(r.get("relative_l2_error", float("nan")))
+        peak_val = float(r.get("peak_normalized_error", float("nan")))
+        runtime_val = float(r.get("runtime_s", float("nan")))
         cur_valid = _parse_strict_bool(r.get("valid"))
         cur_cov = _parse_strict_bool(r.get("sufficient_coverage"))
         cur_ref_conv = _parse_strict_bool(r.get("reference_converged"))
         cur_unc = float(r.get("ref_uncertainty", 0.005))
+        cur_mag = float(r.get("magnification", 1.0))
+        cur_cov_ratio = float(r.get("coverage_ratio", 1.0))
+        cur_cov_2d = float(r.get("coverage_2d", 1.0))
+
+        # Enforce cell-level reference metadata agreement across all methods for each (dx, z)
+        if spatial_key in spatial_ref_metadata:
+            s_prev = spatial_ref_metadata[spatial_key]
+            if cur_ref_conv != s_prev["ref_conv"]:
+                raise ValueError(
+                    f"Conflicting cell reference convergence at (dx={dx_val}, z={z_val}): "
+                    f"method '{m_name}' has reference_converged={cur_ref_conv}, "
+                    f"previous method had {s_prev['ref_conv']}"
+                )
+            if abs(cur_unc - s_prev["unc"]) > 1e-6:
+                raise ValueError(
+                    f"Conflicting cell reference uncertainty at (dx={dx_val}, z={z_val}): "
+                    f"method '{m_name}' has ref_uncertainty={cur_unc}, "
+                    f"previous method had {s_prev['unc']}"
+                )
+        else:
+            spatial_ref_metadata[spatial_key] = {
+                "ref_conv": cur_ref_conv,
+                "unc": cur_unc,
+            }
+
         if key in seen_cells:
             prev = seen_cells[key]
             conflicts = []
             if np.isfinite(err_val) and np.isfinite(prev["err"]) and abs(err_val - prev["err"]) > 1e-4:
                 conflicts.append(f"relative_l2_error ({prev['err']} vs {err_val})")
+            if np.isfinite(peak_val) and np.isfinite(prev["peak"]) and abs(peak_val - prev["peak"]) > 1e-4:
+                conflicts.append(f"peak_normalized_error ({prev['peak']} vs {peak_val})")
+            if np.isfinite(runtime_val) and np.isfinite(prev["runtime"]) and abs(runtime_val - prev["runtime"]) > 1e-3:
+                conflicts.append(f"runtime_s ({prev['runtime']} vs {runtime_val})")
             if cur_valid != prev["valid"]:
                 conflicts.append(f"valid ({prev['valid']} vs {cur_valid})")
             if cur_cov != prev["cov"]:
                 conflicts.append(f"sufficient_coverage ({prev['cov']} vs {cur_cov})")
             if cur_ref_conv != prev["ref_conv"]:
                 conflicts.append(f"reference_converged ({prev['ref_conv']} vs {cur_ref_conv})")
+            if abs(cur_unc - prev["unc"]) > 1e-6:
+                conflicts.append(f"ref_uncertainty ({prev['unc']} vs {cur_unc})")
+            if abs(cur_mag - prev["mag"]) > 1e-4:
+                conflicts.append(f"magnification ({prev['mag']} vs {cur_mag})")
+            if abs(cur_cov_ratio - prev["cov_ratio"]) > 1e-4:
+                conflicts.append(f"coverage_ratio ({prev['cov_ratio']} vs {cur_cov_ratio})")
+            if abs(cur_cov_2d - prev["cov_2d"]) > 1e-4:
+                conflicts.append(f"coverage_2d ({prev['cov_2d']} vs {cur_cov_2d})")
+
             if conflicts:
                 raise ValueError(f"Conflicting duplicate benchmark records for {key}: {', '.join(conflicts)}")
             continue
+
         seen_cells[key] = {
             "err": err_val,
+            "peak": peak_val,
+            "runtime": runtime_val,
             "valid": cur_valid,
             "cov": cur_cov,
             "ref_conv": cur_ref_conv,
             "unc": cur_unc,
+            "mag": cur_mag,
+            "cov_ratio": cur_cov_ratio,
+            "cov_2d": cur_cov_2d,
         }
         deduped_data.append(r)
     metrics_data = deduped_data
@@ -552,14 +603,6 @@ def generate_fig04_method_selection_map(
     ref_unc_map = np.full((ndx, nz), 0.005)
     mag_map = np.full((ndx, nz), 1.0)
 
-    def _parse_strict_bool(val: Any) -> bool:
-        if val is None or val == "":
-            return False
-        if isinstance(val, bool):
-            return val
-        s = str(val).strip().lower()
-        return s in ("true", "1", "yes")
-
     for r in metrics_data:
         m = r["method"]
         if m in methods:
@@ -569,7 +612,6 @@ def generate_fig04_method_selection_map(
             err_maps[m][idx, iz] = err
             runtime_maps[m][idx, iz] = float(r.get("runtime_s", float("nan")))
 
-            # Explicit boolean parsing - never default missing to True
             valid_maps[m][idx, iz] = _parse_strict_bool(r.get("valid"))
             cov_maps[m][idx, iz] = _parse_strict_bool(r.get("sufficient_coverage"))
             ref_conv_map[idx, iz] = _parse_strict_bool(r.get("reference_converged"))

@@ -894,15 +894,39 @@ def characterize_thin_lens_focus(
     waist_err_rel = float(abs(w_focus_meas - w_focus_th) / w_focus_th)
     beam_radius_l2 = float(np.linalg.norm(np.array(waists_meas) - np.array(waists_th)) / np.linalg.norm(np.array(waists_th)))
 
-    # Empirical uncertainties derived from multi-parameter convergence study:
-    # 1. Axial fit interpolation sensitivity is < 0.02 um across dz in [0.05, 0.25] mm.
-    # 2. Spatial grid convergence difference (N=256 to N=512) is 2.02 um, and (N=512 to N=1024) is < 0.001 um.
-    if nx <= 256:
-        focus_uncertainty = 2.0e-6  # Spatial grid discretization dominated: ~2 um
-        waist_uncertainty = 2.0e-8  # Waist discretization uncertainty ~19 nm
+    # Check if parameters match canonical benchmark configuration:
+    # w0=300 um, lambda=532 nm, f=75 mm, dx=dy=5 um
+    is_canonical = (
+        abs(w0 - 3.0e-4) < 1e-9
+        and abs(wavelength - 532e-9) < 1e-12
+        and abs(focal_length - 75e-3) < 1e-6
+        and abs(dx - 5e-6) < 1e-9
+        and abs(dy - 5e-6) < 1e-9
+    )
+
+    if is_canonical:
+        # Empirical convergence uncertainties derived from multi-parameter convergence study
+        # (N=256, 512, 1024; nz=29, 71, 141; axial fit interpolation sensitivity < 0.02 um)
+        if nx <= 256:
+            focus_uncertainty = 2.0e-6  # Spatial grid discretization dominated: ~2 um
+            waist_uncertainty = 2.0e-8  # Waist discretization uncertainty ~20 nm
+            calibration_status = "canonical_coarse_grid_calibrated"
+        else:
+            focus_uncertainty = 1.0e-6  # Spatial grid converged to < 0.001 um; residual modeling ~0.6 um
+            waist_uncertainty = 1.0e-9  # Waist converged to < 0.01 nm
+            calibration_status = "canonical_converged_grid_calibrated"
     else:
-        focus_uncertainty = 1.0e-6  # Spatial grid converged to < 0.001 um; residual paraxial modeling: ~0.6 um
-        waist_uncertainty = 1.0e-9  # Waist converged to < 0.01 nm
+        # Non-canonical configuration: numerical fit resolution based on discrete axial step
+        focus_uncertainty = float(dz_step / 10.0)
+        waist_uncertainty = float(1.0e-7)
+        calibration_status = "non_canonical_heuristic"
+
+    # Explicit separation of:
+    # 1. Model discrepancy: difference between wave propagation simulation and paraxial ABCD ray theory
+    # 2. Numerical resolution: step size of axial waist scan
+    # 3. Uncertainty: empirical convergence bound (or fit resolution for non-canonical setups)
+    model_discrepancy_z = float(abs(z_focus_meas - z_focus_th))
+    model_discrepancy_w = float(abs(w_focus_meas - w_focus_th))
 
     return {
         "passed": bool(pos_err_rel < 0.02 and waist_err_rel < 0.03),
@@ -910,13 +934,17 @@ def characterize_thin_lens_focus(
         "focus_z_measured_m": float(z_focus_meas),
         "focus_z_relative_error": float(pos_err_rel),
         "focus_z_uncertainty_m": float(focus_uncertainty),
+        "model_discrepancy_z_m": float(model_discrepancy_z),
         "waist_theory_m": float(w_focus_th),
         "waist_measured_m": float(w_focus_meas),
         "waist_relative_error": float(waist_err_rel),
         "waist_uncertainty_m": float(waist_uncertainty),
+        "model_discrepancy_waist_m": float(model_discrepancy_w),
         "beam_radius_l2_error": float(beam_radius_l2),
         "z_step_m": float(dz_step),
+        "numerical_resolution_z_m": float(dz_step),
         "fit_method": "quadratic_interpolation",
+        "calibration_status": calibration_status,
         "precision_note": f"Focus position {z_focus_meas*1e3:.4f} mm (raw rel err {pos_err_rel*100:.4f}%), waist {w_focus_meas*1e6:.3f} um (raw rel err {waist_err_rel*100:.4f}%)",
     }
 

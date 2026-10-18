@@ -202,3 +202,69 @@ Following the third-round adversarial audit, the `fft-diffraction` repository po
 
 The software is verified, scientifically defensible, and suitable for publication and educational dissemination.
 
+---
+
+## 9. Fourth-Round Independent Audit, Critical Repair, and End-to-End Verification
+
+**Date:** October 2026  
+**Audited Commit Baseline:** `bd781aed62a641cb40d86ce68f7b36eb5de5bb76`  
+**Execution Environment:** Windows 11 Pro, Intel Core i7-13700H, Python 3.13.7, NumPy 2.5.3, SciPy 1.16.2  
+
+### 9.1 Fourth-Round Core Findings and Root Cause Analysis
+
+1. **CRITICAL P0-01 — Linux CI Failure from Windows CRLF / Linux LF Hash Mismatch:**
+   - In GitHub Actions run 39123776342, all 4 Ubuntu jobs failed in `Verify generated artifacts` while all 4 Windows jobs passed.
+   - *Root Cause:* Files were serialized in `reproduce.py` on Windows using platform-default newlines (`\r\n`), and Python's `csv.DictWriter` defaults to `lineterminator="\r\n"` on all operating systems. Consequently, `results/manifest.json` stored SHA-256 hashes generated from CRLF byte sequences. When Git checked out the repository on Ubuntu, text files were converted to canonical LF (`\n`), producing an immediate cryptographic hash mismatch (`validation.json`: CRLF `134e5f94...` vs LF `4417151d...`).
+   - *Resolution:* Created `.gitattributes` declaring `* text=auto eol=lf` and explicit LF for all text artifacts (`*.py`, `*.md`, `*.yml`, `*.json`, `*.csv`) while declaring image assets binary. Updated `reproduce.py:save_results()` to enforce canonical LF across all platforms (`newline="\n"` on `open()`, and `lineterminator="\n"` on `DictWriter`). Raw byte assertions verify `b"\r\n" not in file` across all generated artifacts.
+
+2. **P0-02 — CI Decoupling of Committed Full Artifacts and Newly Generated Quick Results:**
+   - *Root Cause:* Previous CI executed `python reproduce.py --quick` in default `--output-dir results`. Because `save_results()` protected existing full benchmark results from being overwritten, `results/validation.json` remained untouched, meaning CI only re-verified the static full results rather than verifying the newly executed quick pipeline.
+   - *Resolution:* Reconstructed `.github/workflows/ci.yml` into a six-stage verification gate:
+     - Stage 1: Run full pytest suite.
+     - Stage 2: Assert test isolation (`git diff --exit-code -- results/ assets/`).
+     - Stage 3: Verify committed full artifacts in `results/` (292 rows, 7 checks, canonical LF, exact SHA-256 match).
+     - Stage 4: Run quick reproduction into isolated test directories: `python reproduce.py --quick --output-dir quick_results --asset-dir quick_assets`.
+     - Stage 5: Independently verify newly generated quick artifacts in `quick_results/` and `quick_assets/` (80 rows, 7 checks, canonical LF, exact SHA-256 match, Figures 1–6 generated).
+     - Stage 6: Assert repository cleanliness (`git diff --exit-code -- results/ assets/`).
+
+3. **P1-03 & P1-04 — Transactional Publication Pointer and Source Provenance:**
+   - Added `active_run.json` containing `run_id`, `timestamp_utc`, `execution_mode`, `git_commit`, `is_dirty`, and `source_digest`, published atomically alongside `manifest.json`.
+   - Added `verify_results_integrity(output_dir)` helper for automated cryptographic validation.
+   - Implemented `_compute_source_provenance()` extracting git commit, dirty flag (monitoring core files `diffraction.py`, `reproduce.py`, `visualize.py`), source file hashes, and combined source digest into `manifest.json`.
+
+4. **P1-05 — Configuration-Aware Thin-Lens Focus Calibration:**
+   - In `diffraction.py:characterize_thin_lens_focus()`, verified canonical parameters ($w_0 = 300\,\mu\text{m}$, $\lambda = 532$ nm, $f = 75$ mm, $\Delta x = 5\,\mu\text{m}$) before assigning empirical convergence bounds ($\pm 1.0\,\mu\text{m}$ for $N=512$, $\pm 2.0\,\mu\text{m}$ for $N=256$).
+   - Explicitly separated `model_discrepancy_z_m` ($0.60\,\mu\text{m}$ from paraxial thin-lens mask) and `model_discrepancy_waist_m` ($< 1$ nm) from `numerical_resolution_z_m` and assigned `calibration_status` ("canonical_full", "canonical_quick", "uncalibrated_configuration").
+
+5. **P1-06 — Documentation and Validation Table Reconciliation:**
+   - Fixed lines 199–200 in `README.md` validation summary table: corrected stale $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0100$ mm to $\pm 0.0010$ mm, and $w_{0,\mathrm{meas}}' = 41.920 \pm 0.100\,\mu$m to $\pm 0.001\,\mu$m, matching the narrative and verified numerical precision.
+
+6. **P2-07 & P2-08 — Comprehensive Figure 4 Deduplication and Row-Order Invariance:**
+   - Expanded duplicate checking in `visualize.py:generate_fig04_method_selection_map()` to verify consistency across 10 attributes: `relative_l2_error`, `peak_normalized_error`, `runtime_s`, `valid`, `sufficient_coverage`, `reference_converged`, `ref_uncertainty`, `magnification`, `coverage_ratio`, and `coverage_2d`.
+   - Enforced cell-level reference metadata agreement across methods at each spatial coordinate $(dx, z)$ so that map rankings are strictly invariant under arbitrary row shuffling.
+
+### 9.2 Fourth-Round Issue Resolution Matrix
+
+| Issue ID | Affected Components | Root Cause | Scientific & Numerical Resolution | Verification Method |
+| :--- | :--- | :--- | :--- | :--- |
+| **P0-01: Cross-Platform CRLF/LF Hash Mismatch** | `reproduce.py`, `.gitattributes`, `results/` | Windows CRLF serialization produced different SHA-256 hashes than Linux LF checkout. | Added `.gitattributes`; enforced `newline="\n"` and `lineterminator="\n"` in all serialization; verified `b"\r\n" not in file`. | `test_canonical_lf_serialization`, byte-level inspection |
+| **P0-02: Coupled CI Quick & Full Artifacts** | `.github/workflows/ci.yml` | Quick reproduction ran into `results/` but did not overwrite full results, leaving quick outputs unverified. | Decoupled CI into committed full verification and isolated quick run to `quick_results/` and `quick_assets/`. | CI workflow simulation & multi-OS matrix |
+| **P1-03: Transactional Pointer & Verification** | `reproduce.py` | Top-level lacked active run pointer and programmatic verification utility. | Added `active_run.json` and `verify_results_integrity()` helper. | `test_canonical_lf_serialization` |
+| **P1-04: Incomplete Source Provenance** | `reproduce.py` | Manifest lacked dirty status, individual source hashes, and aggregated source digest. | Implemented `_compute_source_provenance()` embedded in `manifest.json`. | `test_source_provenance_tracking` |
+| **P1-05: Uncalibrated Focus Uncertainty** | `diffraction.py` | Uncertainty was hardcoded regardless of simulation configuration. | Added configuration verification, separated model discrepancy from numerical bounds, assigned `calibration_status`. | `test_characterize_thin_lens_focus_configuration_awareness` |
+| **P1-06: Table vs Narrative Uncertainty Discrepancy** | `README.md` | Table had $\pm 0.0100$ mm / $\pm 0.100\,\mu$m vs narrative $\pm 0.0010$ mm / $\pm 0.001\,\mu$m. | Reconciled table to verified $\pm 0.0010$ mm and $\pm 0.001\,\mu$m. | Text and table audit |
+| **P2-07: Narrow Figure 4 Duplicate Check** | `visualize.py` | Duplicate check ignored secondary metrics and spatial attributes. | Checked all 10 fields (`peak_normalized_error`, `runtime_s`, `ref_uncertainty`, etc.). | `test_fig04_duplicate_detection_conflicting_attributes` |
+| **P2-08: Figure 4 Row-Order Dependency** | `visualize.py` | Reference convergence and uncertainty could be overwritten by trailing rows if methods disagreed. | Enforced spatial cell reference agreement across all methods for each $(dx, z)$. | `test_fig04_spatial_cell_metadata_conflict`, `test_fig04_row_order_invariance` |
+
+### 9.3 Fourth-Round Test Suite Summary
+The test suite in `tests/test_diffraction.py` now contains **51 dedicated pytest tests** covering:
+- Mathematical grid centering, frequency grids, and coordinate symmetries.
+- Fresnel, standard ASM, BL-ASM, and SAS analytical optical propagators.
+- Rayleigh–Sommerfeld numerical integration and complex-field phase alignment.
+- Analytical Airy patterns, 2D sinc cross-sections, and on-axis intensities.
+- Thin-lens Gaussian focusing, ABCD complex beam parameter theory, and quadratic interpolation.
+- Spiral phase masks, topological charge conservation, and null singularity detection.
+- Transactional staging, run archiving, quick-mode preservation, and canonical LF serialization.
+- Cross-platform SHA-256 integrity, source provenance, Figure 4 deduplication, and row-order invariance.
+
+

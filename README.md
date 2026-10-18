@@ -14,7 +14,7 @@ Clone the repository and install required dependencies:
 python -m pip install -r requirements.txt
 ```
 
-Run test suite:
+Run test suite (51 physical and numerical verification tests):
 
 ```bash
 python -m pytest -q
@@ -26,9 +26,9 @@ Run fast verification (compact parameter sweep and figures 1 to 6):
 python reproduce.py --quick
 ```
 
-*Note: Running in `--quick` mode preserves existing full benchmark results in `results/` unless `--overwrite-full` is passed. Quick results are archived under `results/runs/<run_id>/` and saved to `validation_quick.json` and `metrics_quick.csv`.*
+*Note: Running in `--quick` mode executes an isolated parameter sweep and preserves existing full benchmark results in `results/` unless `--overwrite-full` is passed. Quick results are archived under `results/runs/<run_id>/` and saved to `validation_quick.json` and `metrics_quick.csv`.*
 
-Run full reproduction suite (full sweeps, benchmarks, 6 publication figures, 2 animated GIFs, metrics CSV, validation JSON, and cryptographic manifest):
+Run full reproduction suite (full sweeps, 292 benchmark records, 6 publication figures, 2 animated GIFs, canonical LF metrics CSV, validation JSON, cryptographic manifest, and active run pointer):
 
 ```bash
 python reproduce.py
@@ -196,8 +196,8 @@ Summary of automated physical validation benchmarks:
 | Airy radial profile | SAS | $0.50$ m | Analytical Airy $J_1(q)/q$ | Full scaled FOV | $0.36\%$ | Pass |
 | Sinc cross-sections | BL-ASM | $0.50$ m | Analytical 2D $\mathrm{sinc}^2$ | $x$-slice / $y$-slice | $1.65\% / 2.64\%$ | Pass |
 | Near-field cross-check | BL-ASM | $0.005$ m | Rayleigh-Sommerfeld direct | Central active subgrid | $3.89\%$ (int.) / $7.81\%$ (complex) | Pass |
-| Thin-lens focus position | BL-ASM | Focus | $z_f = 73.5356$ mm (ABCD theory) | $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0100$ mm | $0.0008\%$ | Pass |
-| Focused beam waist | BL-ASM | Focus | $w_0' = 41.920\,\mu$m (ABCD theory) | $w_{0,\mathrm{meas}}' = 41.920 \pm 0.100\,\mu$m | $< 0.0001\%$ | Pass |
+| Thin-lens focus position | BL-ASM | Focus | $z_f = 73.5356$ mm (ABCD theory) | $z_{f,\mathrm{meas}} = 73.5350 \pm 0.0010$ mm | $0.0008\%$ | Pass |
+| Focused beam waist | BL-ASM | Focus | $w_0' = 41.920\,\mu$m (ABCD theory) | $w_{0,\mathrm{meas}}' = 41.920 \pm 0.001\,\mu$m | $< 0.0001\%$ | Pass |
 | Vortex charge $\ell = 1$ | BL-ASM | $0.20$ m | Topological charge $Q = 1.0$ | $Q_{\mathrm{meas}} = 1.000$ | $0.00\%$ | Pass |
 | Vortex charge $\ell = 2$ | BL-ASM | $0.20$ m | Topological charge $Q = 2.0$ | $Q_{\mathrm{meas}} = 2.000$ | $0.00\%$ | Pass |
 | Vortex charge $\ell = 3$ | BL-ASM | $0.20$ m | Topological charge $Q = 3.0$ | $Q_{\mathrm{meas}} = 3.000$ | $0.00\%$ | Pass |
@@ -211,6 +211,17 @@ Summary of automated physical validation benchmarks:
 - **Paraxial Limits:** Fresnel transforms and Fraunhofer analytical formulas assume paraxial propagation ($N_F \ll 1$ and small angles). Full angular spectrum methods support wide propagating angles but remain subject to discrete grid sampling limits.
 - **Zero-Distance Behavior:** SAS is singular at $z = 0$ due to grid scaling division by $z$; the implementation returns an explicit identity branch at $z = 0$.
 - **Window Truncation:** Fixed-grid methods necessarily truncate spreading wavefronts when the physical beam diameter exceeds the computational window size.
+
+---
+
+## Automated Continuous Integration and Verification
+
+The repository incorporates continuous integration across 8 matrix environments on GitHub Actions, spanning Ubuntu and Windows with Python 3.10, 3.11, 3.12, and 3.13.
+
+The automated verification workflow executes a decoupled three-stage protocol:
+1. **Committed Full Artifact Verification:** Validates the committed canonical benchmark dataset (`results/metrics.csv` containing 292 records across all methods, distances, and grid pitches), all 7 analytical validation gates (`results/validation.json`), the SHA-256 cryptographic integrity manifest (`results/manifest.json`), and the active run pointer (`results/active_run.json`). Cross-platform byte consistency is enforced via `.gitattributes` and Python LF line serialization (`eol=lf`).
+2. **Isolated Fast Reproduction Run:** Executes `python reproduce.py --quick` writing into dedicated isolated artifact paths (`--output-dir quick_results --asset-dir quick_assets`). The runner independently verifies that the freshly generated run satisfies all 7 validation gates and reproduces all 6 scientific figures without mutating the committed canonical benchmark data.
+3. **Repository Cleanliness Check:** Runs `git diff --exit-code` to guarantee zero unintended workspace modifications or untracked drift during automated execution.
 
 ---
 

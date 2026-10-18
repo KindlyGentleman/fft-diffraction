@@ -1,5 +1,6 @@
 """Validation and regression tests for scalar diffraction propagation."""
 
+import os
 import numpy as np
 import pytest
 import matplotlib
@@ -1294,11 +1295,15 @@ def test_fig04_duplicate_detection_conflicting_attributes(tmp_path):
         "dx_source_m": 5e-6,
         "dx_output_m": 5e-6,
         "relative_l2_error": 0.01,
+        "peak_normalized_error": 0.02,
         "runtime_s": 0.05,
         "valid": True,
         "sufficient_coverage": True,
         "reference_converged": True,
         "ref_uncertainty": 0.005,
+        "magnification": 1.0,
+        "coverage_ratio": 1.0,
+        "coverage_2d": 1.0,
     }
 
     # Duplicate cell with conflicting valid boolean
@@ -1311,5 +1316,156 @@ def test_fig04_duplicate_detection_conflicting_attributes(tmp_path):
 
     with pytest.raises(ValueError, match="Conflicting duplicate benchmark records"):
         generate_fig04_method_selection_map(metrics_data=data, output_png=out_png, output_pdf=out_pdf)
+
+    # Duplicate cell with conflicting peak_normalized_error
+    cell_conflicting_peak = dict(cell_base)
+    cell_conflicting_peak["peak_normalized_error"] = 0.50
+    with pytest.raises(ValueError, match="Conflicting duplicate benchmark records"):
+        generate_fig04_method_selection_map(metrics_data=[cell_base, cell_conflicting_peak], output_png=out_png, output_pdf=out_pdf)
+
+
+def test_canonical_lf_serialization(tmp_path):
+    """Verify that save_results strictly produces canonical LF files without CRLF on any OS."""
+    import hashlib
+    from reproduce import save_results, verify_results_integrity
+
+    dummy_val = {
+        "check1": {"passed": True, "error": 0.01},
+        "check2": {"passed": True, "error": 0.02},
+    }
+    dummy_met = [
+        {
+            "experiment": "method_selection_map",
+            "N": 64,
+            "method": "blas",
+            "z_m": 0.05,
+            "dx_source_m": 5e-6,
+            "dx_output_m": 5e-6,
+            "source_fov_m": 0.00032,
+            "output_fov_m": 0.00032,
+            "magnification": 1.0,
+            "common_width_m": 0.00032,
+            "coverage_ratio": 1.0,
+            "coverage_2d": 1.0,
+            "captured_power_ratio": 1.0,
+            "ref_window_power_ratio": 1.0,
+            "sufficient_coverage": True,
+            "relative_l2_error": 0.01,
+            "peak_normalized_error": 0.01,
+            "runtime_s": 0.01,
+            "valid": True,
+            "sas_reason": "ok",
+            "reference_converged": True,
+            "ref_type": "airy",
+            "ref_uncertainty": 0.005,
+        }
+    ]
+
+    out_dir = str(tmp_path / "results_lf_test")
+    manifest = save_results(dummy_val, dummy_met, output_dir=out_dir, quick=True)
+
+    for fname in ("validation.json", "metrics.csv", "manifest.json", "active_run.json"):
+        fpath = os.path.join(out_dir, fname)
+        assert os.path.isfile(fpath)
+        raw = open(fpath, "rb").read()
+        assert b"\r\n" not in raw, f"File {fname} contains Windows CRLF line endings"
+
+    # Verify cryptographic hash integrity check helper
+    assert verify_results_integrity(out_dir) is True
+
+
+def test_source_provenance_tracking():
+    """Verify source provenance extraction covers core source digests and dirty detection."""
+    from reproduce import _compute_source_provenance
+
+    prov = _compute_source_provenance()
+    assert "git_commit" in prov
+    assert "is_dirty" in prov
+    assert "source_digest" in prov
+    assert "source_file_hashes" in prov
+    assert len(prov["source_digest"]) == 64
+    for sf in ("diffraction.py", "reproduce.py", "visualize.py"):
+        assert sf in prov["source_file_hashes"]
+        assert len(prov["source_file_hashes"][sf]) == 64
+
+
+def test_fig04_spatial_cell_metadata_conflict(tmp_path):
+    """Verify Fig 4 raises ValueError when different methods for same spatial cell have conflicting reference metadata."""
+    from visualize import generate_fig04_method_selection_map
+    import pytest
+
+    cell_fresnel = {
+        "experiment": "method_selection_map",
+        "method": "fresnel",
+        "z_m": 0.05,
+        "dx_source_m": 5e-6,
+        "dx_output_m": 5e-6,
+        "relative_l2_error": 0.05,
+        "valid": True,
+        "sufficient_coverage": True,
+        "reference_converged": True,
+        "ref_uncertainty": 0.005,
+    }
+    cell_blas_conflict = {
+        "experiment": "method_selection_map",
+        "method": "blas",
+        "z_m": 0.05,
+        "dx_source_m": 5e-6,
+        "dx_output_m": 5e-6,
+        "relative_l2_error": 0.01,
+        "valid": True,
+        "sufficient_coverage": True,
+        "reference_converged": False,  # Conflicting cell-level convergence!
+        "ref_uncertainty": 0.005,
+    }
+
+    out_png = str(tmp_path / "spatial_conflict.png")
+    out_pdf = str(tmp_path / "spatial_conflict.pdf")
+
+    with pytest.raises(ValueError, match="Conflicting cell reference convergence"):
+        generate_fig04_method_selection_map(metrics_data=[cell_fresnel, cell_blas_conflict], output_png=out_png, output_pdf=out_pdf)
+
+
+def test_fig04_row_order_invariance(tmp_path):
+    """Verify that Figure 4 generation and ranking is strictly invariant under row shuffling."""
+    import random
+    from reproduce import run_method_selection_sweep
+    from visualize import generate_fig04_method_selection_map
+
+    # Generate quick sweep metrics
+    data_orig = run_method_selection_sweep(quick=True)
+    data_shuffled = list(data_orig)
+    random.seed(12345)
+    random.shuffle(data_shuffled)
+
+    out1_png = str(tmp_path / "map_orig.png")
+    out2_png = str(tmp_path / "map_shuffled.png")
+
+    generate_fig04_method_selection_map(metrics_data=data_orig, output_png=out1_png, output_pdf=str(tmp_path / "map_orig.pdf"))
+    generate_fig04_method_selection_map(metrics_data=data_shuffled, output_png=out2_png, output_pdf=str(tmp_path / "map_shuffled.pdf"))
+
+    # Both figures must be generated successfully and non-empty
+    assert os.path.isfile(out1_png) and os.path.getsize(out1_png) > 0
+    assert os.path.isfile(out2_png) and os.path.getsize(out2_png) > 0
+
+
+def test_characterize_thin_lens_focus_configuration_awareness():
+    """Verify configuration-aware calibration and separation of model discrepancy from numerical bounds."""
+    from diffraction import characterize_thin_lens_focus
+
+    # Canonical quick configuration (N=256, dx=5um, w0=300um, f=75mm)
+    res_canon = characterize_thin_lens_focus(quick=True)
+    assert res_canon["calibration_status"] == "canonical_coarse_grid_calibrated"
+    assert res_canon["focus_z_uncertainty_m"] == 2.0e-6
+    assert "model_discrepancy_z_m" in res_canon
+    assert "model_discrepancy_waist_m" in res_canon
+    assert "numerical_resolution_z_m" in res_canon
+    assert res_canon["numerical_resolution_z_m"] > 0
+
+    # Non-canonical configuration (e.g. w0=200um)
+    res_custom = characterize_thin_lens_focus(quick=True, w0=200e-6)
+    assert res_custom["calibration_status"] == "non_canonical_heuristic"
+    assert res_custom["focus_z_uncertainty_m"] > 0
+
 
 

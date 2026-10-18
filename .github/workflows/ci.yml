@@ -37,26 +37,31 @@ jobs:
         run: |
           python -m pytest -v
 
-      - name: Verify test isolation (tests must not mutate tracked results)
+      - name: Verify test isolation (tests must not mutate tracked results or assets)
         run: |
-          git diff --exit-code -- results/
+          git diff --exit-code -- results/ assets/
 
-      - name: Run quick reproduction pipeline
-        run: |
-          python reproduce.py --quick
-
-      - name: Verify generated artifacts
+      - name: Verify committed full artifacts
         shell: bash
         run: |
           python -c "
-          import json, csv, os, sys
-          assert os.path.isfile('results/validation.json'), 'validation.json missing'
-          assert os.path.isfile('results/metrics.csv'), 'metrics.csv missing'
+          import json, csv, os, sys, hashlib
 
-          # 1. Validate validation.json
-          with open('results/validation.json', 'r') as f:
+          for fname in ('validation.json', 'metrics.csv', 'manifest.json', 'active_run.json'):
+              fpath = os.path.join('results', fname)
+              assert os.path.isfile(fpath), f'Committed {fname} missing'
+              raw_bytes = open(fpath, 'rb').read()
+              assert b'\r\n' not in raw_bytes, f'Committed {fname} contains CRLF line endings instead of canonical LF'
+
+          with open('results/manifest.json', 'r', encoding='utf-8') as f:
+              man = json.load(f)
+          exec_mode = man.get('execution_mode')
+          assert exec_mode == 'full', f'Expected mode full, got {exec_mode}'
+          assert man.get('all_validations_passed') is True, 'Manifest reports failing validations'
+
+          with open('results/validation.json', 'r', encoding='utf-8') as f:
               v = json.load(f)
-          assert len(v) >= 7, f'Expected at least 7 validation categories, got {len(v)}'
+          assert len(v) == 7, f'Expected 7 validation categories, got {len(v)}'
           required_checks = [
               'zero_distance_identity', 'circular_fraunhofer_airy',
               'scalable_angular_spectrum_airy', 'rectangular_fraunhofer_sinc',
@@ -66,28 +71,73 @@ jobs:
               assert chk in v, f'Missing required check: {chk}'
               assert v[chk].get('passed') is True, f'Check {chk} did not pass: {v[chk]}'
 
-          # 2. Validate metrics.csv
-          with open('results/metrics.csv', 'r') as f:
+          with open('results/metrics.csv', 'r', encoding='utf-8') as f:
               reader = list(csv.DictReader(f))
-          assert len(reader) >= 20, f'Expected at least 20 metric rows in quick mode, got {len(reader)}'
-          required_cols = ['experiment', 'method', 'z_m', 'dx_source_m', 'relative_l2_error', 'valid']
-          for col in required_cols:
-              assert col in reader[0], f'Missing column in metrics.csv: {col}'
-          for r in reader:
-              assert r['experiment'] in ('method_selection_map', 'fixed_fov'), f'Unknown experiment: {r[\"experiment\"]}'
-              assert float(r['relative_l2_error']) >= 0.0, f'Negative error: {r}'
+          assert len(reader) == 292, f'Expected 292 full benchmark records, got {len(reader)}'
 
-          # 3. Validate manifest.json and cryptographic hash integrity
-          import hashlib
-          assert os.path.isfile('results/manifest.json'), 'manifest.json missing'
-          with open('results/manifest.json', 'r') as f:
-              man = json.load(f)
-          assert man['all_validations_passed'] is True, 'Manifest reports failing validations'
           for fname in ('validation.json', 'metrics.csv'):
               fpath = os.path.join('results', fname)
               expected_sha = man['files'][fname]['sha256']
               actual_sha = hashlib.sha256(open(fpath, 'rb').read()).hexdigest()
               assert actual_sha == expected_sha, f'Hash mismatch for {fname}: {actual_sha} vs {expected_sha}'
-          print('Artifact and cryptographic manifest verification passed successfully.')
+
+          print('Committed full artifacts and cryptographic manifest verified successfully.')
           "
+
+      - name: Run quick reproduction pipeline into isolated directory
+        run: |
+          python reproduce.py --quick --output-dir quick_results --asset-dir quick_assets
+
+      - name: Verify newly generated quick artifacts
+        shell: bash
+        run: |
+          python -c "
+          import json, csv, os, sys, hashlib
+
+          for fname in ('validation.json', 'metrics.csv', 'manifest.json', 'active_run.json'):
+              fpath = os.path.join('quick_results', fname)
+              assert os.path.isfile(fpath), f'Quick {fname} missing'
+              raw_bytes = open(fpath, 'rb').read()
+              assert b'\r\n' not in raw_bytes, f'Quick {fname} contains CRLF line endings instead of canonical LF'
+
+          with open('quick_results/manifest.json', 'r', encoding='utf-8') as f:
+              man = json.load(f)
+          exec_mode = man.get('execution_mode')
+          assert exec_mode == 'quick', f'Expected mode quick, got {exec_mode}'
+          assert man.get('all_validations_passed') is True, 'Quick manifest reports failing validations'
+
+          with open('quick_results/validation.json', 'r', encoding='utf-8') as f:
+              v = json.load(f)
+          assert len(v) == 7, f'Expected 7 validation categories, got {len(v)}'
+          for chk in v.values():
+              assert chk.get('passed') is True, f'Quick check failed: {chk}'
+
+          with open('quick_results/metrics.csv', 'r', encoding='utf-8') as f:
+              reader = list(csv.DictReader(f))
+          assert len(reader) == 80, f'Expected 80 quick benchmark records, got {len(reader)}'
+
+          for fname in ('validation.json', 'metrics.csv'):
+              fpath = os.path.join('quick_results', fname)
+              expected_sha = man['files'][fname]['sha256']
+              actual_sha = hashlib.sha256(open(fpath, 'rb').read()).hexdigest()
+              assert actual_sha == expected_sha, f'Hash mismatch in quick {fname}: {actual_sha} vs {expected_sha}'
+
+          for fig_name in [
+              'fig01_aperture_diffraction.png',
+              'fig02_methods_errors.png',
+              'fig03_results_profiles.png',
+              'fig04_method_selection_map.png',
+              'fig05_thin_lens_focus.png',
+              'fig06_vortex_beam.png',
+          ]:
+              p = os.path.join('quick_assets', fig_name)
+              assert os.path.isfile(p), f'Missing quick figure: {p}'
+              assert os.path.getsize(p) > 0, f'Empty quick figure: {p}'
+
+          print('Quick reproduction artifacts and figures verified successfully.')
+          "
+
+      - name: Verify repository cleanliness (pipeline must not mutate tracked results or assets)
+        run: |
+          git diff --exit-code -- results/ assets/
 

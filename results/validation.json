@@ -41,13 +41,17 @@
     "focus_z_measured_m": 0.0735350019435848,
     "focus_z_relative_error": 8.180214341068668e-06,
     "focus_z_uncertainty_m": 1e-06,
+    "model_discrepancy_z_m": 6.015369981710039e-07,
     "waist_theory_m": 4.1919873846427804e-05,
     "waist_measured_m": 4.1919874023115455e-05,
     "waist_relative_error": 4.214889849893872e-09,
     "waist_uncertainty_m": 1e-09,
+    "model_discrepancy_waist_m": 1.7668765078414014e-13,
     "beam_radius_l2_error": 1.0827419072145614e-05,
     "z_step_m": 0.00010000000000000286,
+    "numerical_resolution_z_m": 0.00010000000000000286,
     "fit_method": "quadratic_interpolation",
+    "calibration_status": "canonical_converged_grid_calibrated",
     "precision_note": "Focus position 73.5350 mm (raw rel err 0.0008%), waist 41.920 um (raw rel err 0.0000%)"
   },
   "optical_vortex": {

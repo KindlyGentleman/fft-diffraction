@@ -84,6 +84,67 @@ def _compute_sha256(filepath: str) -> str:
     return hasher.hexdigest()
 
 
+def _compute_source_provenance() -> Dict[str, Any]:
+    """Compute deterministic source provenance including commit, dirty status, and source digest."""
+    git_rev = "unknown"
+    is_dirty = False
+    modified_files = []
+
+    try:
+        res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+        git_rev = res.stdout.strip()
+    except Exception:
+        pass
+
+    try:
+        diff_res = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, check=True)
+        status_lines = [line.strip() for line in diff_res.stdout.splitlines() if line.strip()]
+        source_mods = [line for line in status_lines if any(src in line for src in ("diffraction.py", "reproduce.py", "visualize.py"))]
+        is_dirty = len(source_mods) > 0
+        modified_files = [line.split()[-1] for line in status_lines]
+    except Exception:
+        pass
+
+    source_hasher = hashlib.sha256()
+    core_files = ["diffraction.py", "reproduce.py", "visualize.py"]
+    source_file_hashes = {}
+    for sf in core_files:
+        if os.path.exists(sf):
+            h = _compute_sha256(sf)
+            source_file_hashes[sf] = h
+            source_hasher.update(h.encode("utf-8"))
+    source_digest = source_hasher.hexdigest()
+
+    return {
+        "git_commit": git_rev,
+        "is_dirty": is_dirty,
+        "modified_files": modified_files,
+        "source_digest": source_digest,
+        "source_file_hashes": source_file_hashes,
+    }
+
+
+def verify_results_integrity(output_dir: str = "results") -> bool:
+    """Verify that output_dir contains complete, untampered validation, metrics, and manifest files."""
+    man_path = os.path.join(output_dir, "manifest.json")
+    if not os.path.isfile(man_path):
+        return False
+    try:
+        with open(man_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+        for fname in ("validation.json", "metrics.csv"):
+            fpath = os.path.join(output_dir, fname)
+            if not os.path.isfile(fpath):
+                return False
+            expected_sha = manifest["files"][fname]["sha256"]
+            actual_sha = _compute_sha256(fpath)
+            if actual_sha != expected_sha:
+                return False
+        return True
+    except Exception:
+        return False
+
+
 def run_validations(quick: bool = False) -> Dict[str, Any]:
     """Execute physical validation checks against analytical and numerical references."""
     results = {}
@@ -629,19 +690,19 @@ def save_results(
 
     try:
         val_path_stage = os.path.join(staging_dir, "validation.json")
-        with open(val_path_stage, "w", encoding="utf-8") as f:
+        with open(val_path_stage, "w", encoding="utf-8", newline="\n") as f:
             json.dump(validations, f, indent=2)
 
         met_path_stage = os.path.join(staging_dir, "metrics.csv")
         if metrics:
             fieldnames = list(metrics[0].keys())
             with open(met_path_stage, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
                 writer.writeheader()
                 writer.writerows(metrics)
         else:
             with open(met_path_stage, "w", newline="", encoding="utf-8") as f:
-                writer = csv.DictWriter(f, fieldnames=BENCHMARK_COLUMNS)
+                writer = csv.DictWriter(f, fieldnames=BENCHMARK_COLUMNS, lineterminator="\n")
                 writer.writeheader()
 
         val_sha = _compute_sha256(val_path_stage)
@@ -649,12 +710,8 @@ def save_results(
         val_bytes = os.path.getsize(val_path_stage)
         met_bytes = os.path.getsize(met_path_stage)
 
-        git_rev = "unknown"
-        try:
-            res = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
-            git_rev = res.stdout.strip()
-        except Exception:
-            pass
+        provenance = _compute_source_provenance()
+        git_rev = provenance.get("git_commit", "unknown")
 
         all_val_passed = bool(validations) and all(v.get("passed", False) for v in validations.values())
 
@@ -664,6 +721,9 @@ def save_results(
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "execution_mode": "quick" if quick else "full",
             "git_commit": git_rev,
+            "is_dirty": provenance.get("is_dirty", False),
+            "source_digest": provenance.get("source_digest", ""),
+            "source_file_hashes": provenance.get("source_file_hashes", {}),
             "platform": {
                 "system": platform.platform(),
                 "python": sys.version.split()[0],
@@ -689,8 +749,21 @@ def save_results(
         }
 
         manifest_path_stage = os.path.join(staging_dir, "manifest.json")
-        with open(manifest_path_stage, "w", encoding="utf-8") as f:
+        with open(manifest_path_stage, "w", encoding="utf-8", newline="\n") as f:
             json.dump(manifest, f, indent=2)
+
+        active_run_stage = os.path.join(staging_dir, "active_run.json")
+        active_run_data = {
+            "run_id": run_id,
+            "timestamp_utc": manifest["timestamp_utc"],
+            "execution_mode": manifest["execution_mode"],
+            "git_commit": git_rev,
+            "is_dirty": provenance.get("is_dirty", False),
+            "source_digest": provenance.get("source_digest", ""),
+            "all_validations_passed": all_val_passed,
+        }
+        with open(active_run_stage, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(active_run_data, f, indent=2)
 
         # 1. Archive run to output_dir/runs/<run_id>/
         run_archive_dir = os.path.join(output_dir, "runs", run_id)
@@ -698,6 +771,7 @@ def save_results(
         shutil.copy2(val_path_stage, os.path.join(run_archive_dir, "validation.json"))
         shutil.copy2(met_path_stage, os.path.join(run_archive_dir, "metrics.csv"))
         shutil.copy2(manifest_path_stage, os.path.join(run_archive_dir, "manifest.json"))
+        shutil.copy2(active_run_stage, os.path.join(run_archive_dir, "active_run.json"))
 
         # 2. Check quick-mode protection for top-level results
         top_manifest_path = os.path.join(output_dir, "manifest.json")
@@ -715,12 +789,15 @@ def save_results(
             quick_val = os.path.join(output_dir, "validation_quick.json")
             quick_met = os.path.join(output_dir, "metrics_quick.csv")
             quick_man = os.path.join(output_dir, "manifest_quick.json")
+            quick_act = os.path.join(output_dir, "active_run_quick.json")
             shutil.copy2(val_path_stage, quick_val + ".tmp")
             shutil.copy2(met_path_stage, quick_met + ".tmp")
             shutil.copy2(manifest_path_stage, quick_man + ".tmp")
+            shutil.copy2(active_run_stage, quick_act + ".tmp")
             os.replace(quick_val + ".tmp", quick_val)
             os.replace(quick_met + ".tmp", quick_met)
             os.replace(quick_man + ".tmp", quick_man)
+            os.replace(quick_act + ".tmp", quick_act)
             print(
                 f"[INFO] Preserved existing full benchmark results in {output_dir}/. "
                 f"Quick results saved to runs/{run_id}/ and {output_dir}/*_quick.*. "
@@ -732,12 +809,15 @@ def save_results(
             val_top = os.path.join(output_dir, "validation.json")
             met_top = os.path.join(output_dir, "metrics.csv")
             man_top = os.path.join(output_dir, "manifest.json")
+            act_top = os.path.join(output_dir, "active_run.json")
             shutil.copy2(val_path_stage, val_top + ".tmp")
             shutil.copy2(met_path_stage, met_top + ".tmp")
             shutil.copy2(manifest_path_stage, man_top + ".tmp")
+            shutil.copy2(active_run_stage, act_top + ".tmp")
             os.replace(val_top + ".tmp", val_top)
             os.replace(met_top + ".tmp", met_top)
             os.replace(man_top + ".tmp", man_top)
+            os.replace(act_top + ".tmp", act_top)
 
         return manifest
 
@@ -789,7 +869,7 @@ def main():
         os.makedirs(args.output_dir, exist_ok=True)
         diag_path = os.path.join(args.output_dir, "validation_failure.json")
         try:
-            with open(diag_path, "w", encoding="utf-8") as f:
+            with open(diag_path, "w", encoding="utf-8", newline="\n") as f:
                 json.dump(validations, f, indent=2)
         except Exception:
             pass
